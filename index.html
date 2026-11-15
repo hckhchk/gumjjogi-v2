@@ -230,6 +230,61 @@ table.grid{border-collapse:separate;border-spacing:4px;width:100%;min-width:640p
 .rs-ok{color:var(--ok);font-weight:700} .rs-bad{color:var(--bad);font-weight:700} .rs-guess{color:var(--para);font-weight:700}
 .talk{margin:16px 0 0;padding:12px 14px;border-radius:8px;border:1px dashed var(--para);background:color-mix(in srgb,var(--para) 8%,var(--surface))}
 .talk ol{margin:6px 0 0;padding-left:20px} .talk li{margin:4px 0}
+/* --- 탭 --- */
+.tabs{position:sticky;top:calc(8px + env(safe-area-inset-top,0px));z-index:20;display:flex;gap:6px;padding:6px;background:color-mix(in srgb,var(--surface) 92%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,.07)}
+.tabs button{flex:1;min-width:0;border:0;border-radius:9px;padding:10px 8px;background:transparent;font-family:"Jua",sans-serif;font-size:17px;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.tabs button:hover{background:var(--sunk);color:var(--ink)}
+.tabs button[aria-selected="true"]{background:var(--jacket);color:#fff}
+.tabs small{font-family:"IBM Plex Sans KR",sans-serif;font-size:12px;opacity:.9}
+body[data-tab] [data-pane]{display:none!important}
+body[data-tab="teach"] [data-pane="teach"],body[data-tab="peer"] [data-pane="peer"],body[data-tab="rec"] [data-pane="rec"]:not([hidden]){display:block!important}
+body:not([data-tab="teach"]) .maincol>.note{display:none}
+@media (max-width:900px){
+  .tabs{position:fixed;left:8px;right:8px;top:auto;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:30}
+  .tabs button{flex-direction:column;gap:0;font-size:14px;padding:6px 4px}
+  .wrap{padding-bottom:96px}
+}
+/* --- 친구 탭 안의 전환 버튼 --- */
+.subtabs{display:flex;gap:6px;margin:4px 0 12px;border-bottom:1px solid var(--line)}
+.subtabs button{border:0;background:none;padding:8px 12px;font-family:"Jua",sans-serif;font-size:17px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px}
+.subtabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--para)}
+.subpane[hidden]{display:none}
+/* --- 두 금쪽이 대화 무대 --- */
+.duostage{position:relative;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,var(--bg),color-mix(in srgb,var(--sunk) 75%,var(--bg)));padding:10px 10px 6px;margin:4px 0 10px;overflow:hidden}
+.dsbubs{display:grid;grid-template-columns:1fr 1fr;gap:12px;min-height:150px;align-items:end;padding:0 4%}
+.dsbub{position:relative;visibility:hidden;background:var(--surface);border:2px solid var(--ink);border-radius:14px;padding:8px 12px;font-family:"Jua","IBM Plex Sans KR",sans-serif;font-size:16px;line-height:1.45;margin-bottom:12px}
+.dsbub.on{visibility:visible}
+.dsbub::after{content:"";position:absolute;bottom:-9px;width:14px;height:14px;background:var(--surface);border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);transform:rotate(45deg)}
+.dsbub.a{border-color:var(--jacket)} .dsbub.a::after{left:30%;border-color:var(--jacket)}
+.dsbub.b{border-color:var(--para)} .dsbub.b::after{right:30%;border-color:var(--para)}
+.dsthink{position:absolute;left:50%;top:44px;transform:translateX(-50%);background:var(--surface);border:2px dashed var(--line);border-radius:14px;padding:8px 14px;font-family:"Jua",sans-serif;color:var(--muted);white-space:nowrap}
+.dsthink[hidden]{display:none}
+.dsrow{display:flex;justify-content:space-between;align-items:flex-end;gap:1%}
+.dsrow figure{margin:0;text-align:center;font-size:12px;color:var(--muted);min-width:0}
+.dsrow figcaption{margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dsrow svg{width:100%;height:auto;display:block}
+.dsdoc{width:20%;transform:translateY(8px)}
+.dskid{width:27%}
+.dsrow .b svg{transform:scaleX(-1)}
+.dsrow .pp{transform:translate(4px,1px)}
+.dsrow .deyes{transform:translate(4px,1px)}
+.dsrow .mopen{opacity:0}
+.dskid .body{transform-box:fill-box;transform-origin:50% 100%}
+.dskid.talking .mopen{animation:dsOpen .28s steps(1) infinite}
+.dskid.talking .mclosed{animation:dsClose .28s steps(1) infinite}
+.dskid.talking .body{animation:dsBob .56s ease-in-out infinite}
+.dskid.listening .body{animation:dsNod 2.4s ease-in-out infinite}
+@keyframes dsOpen{0%{opacity:1}50%{opacity:0}}
+@keyframes dsClose{0%{opacity:0}50%{opacity:1}}
+@keyframes dsBob{50%{transform:translateY(-3px)}}
+@keyframes dsNod{50%{transform:rotate(1.5deg)}}
+.dsbub .dots{display:inline-flex;gap:4px;padding:4px 0}
+.dsbub .dots span{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:duoDot 1.2s infinite}
+.dsbub .dots span:nth-child(2){animation-delay:.2s} .dsbub .dots span:nth-child(3){animation-delay:.4s}
+.duolog{margin-top:6px}
+.duolog>summary{cursor:pointer;color:var(--muted);font-size:13px}
+@media (max-width:600px){.dsbub{font-size:14px;padding:6px 9px}.dsbubs{min-height:110px;gap:8px;padding:0}.dsrow figcaption{font-size:10.5px}}
+@media (prefers-reduced-motion:reduce){.dskid .body,.dskid .mopen,.dskid .mclosed,.dsbub .dots span{animation:none!important}}
 .duobar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
 .duobar select{padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;max-width:100%}
 .duo{display:flex;flex-direction:column;gap:6px;margin:6px 0}
@@ -450,7 +505,12 @@ body{word-break:keep-all;overflow-wrap:anywhere}
 
 <div class="stage">
 <div class="maincol">
-  <section class="lab" aria-label="실험실">
+  <nav class="tabs" id="tabs" role="tablist" aria-label="화면 선택">
+    <button role="tab" data-tab="teach">🔬 ① 가르치기 <small id="tabScore"></small></button>
+    <button role="tab" data-tab="peer">🤝 ② 친구와</button>
+    <button role="tab" data-tab="rec">🏆 ③ 기록·대화</button>
+  </nav>
+  <section class="lab" data-pane="teach" aria-label="실험실">
     <div class="pick">
       <div><div class="lbl">시료</div><div class="chips" id="matChips"></div></div>
       <div><div class="lbl">온도</div><div class="chips" id="envChips"></div></div>
@@ -469,7 +529,7 @@ body{word-break:keep-all;overflow-wrap:anywhere}
     <div class="truth" id="truth"></div>
   </section>
 
-  <section class="exam" aria-label="금쪽이 시험">
+  <section class="exam" data-pane="teach" aria-label="금쪽이 시험">
     <div class="examhead">
       <div><h2 class="display">금쪽이 자성 시험</h2><p>수능형·면접형·일반물리 문제 12개입니다. 금쪽이는 노트에서 가장 비슷한 장면을 떠올려 답을 고릅니다. 문제를 먼저 읽어 보고 무엇을 가르칠지 정해도 좋아요.</p></div>
       <div style="display:flex;gap:14px;align-items:center"><span class="score" id="scoreOut"></span><button class="btn" id="examBtn">시험 보기</button></div>
@@ -477,7 +537,7 @@ body{word-break:keep-all;overflow-wrap:anywhere}
     <div class="qlist" id="qlist"></div>
   </section>
 
-  <section class="hall" aria-label="명예의 전당">
+  <section class="hall" data-pane="rec" aria-label="명예의 전당">
     <div class="examhead"><div><h2 class="display">명예의 전당</h2><p id="hallMode">기록을 불러오는 중입니다.</p></div><button class="btn ghost small" id="adminBtn" hidden>🔐 관리자</button></div>
     <p class="adminbar" id="adminBar" hidden></p>
     <div class="bantabs" id="banTabs" role="tablist" aria-label="반 선택"></div>
@@ -490,7 +550,7 @@ body{word-break:keep-all;overflow-wrap:anywhere}
     </div>
   </section>
 
-  <section class="peer" aria-label="친구 금쪽이와 비교하기">
+  <section class="peer" data-pane="peer" aria-label="친구 금쪽이와 비교하기">
     <div class="examhead">
       <div><h2 class="display">🤝 친구 금쪽이와 비교하기</h2><p>친구를 고르면 두 금쪽이의 노트와 시험 결과를 나란히 볼 수 있어요. 결과가 다른 문제를 찾아서 <b>왜 달라졌는지</b> 친구와 이야기해 보세요.</p></div>
       <label class="pcount peerpick">친구 <select id="peerSel" aria-label="비교할 친구"></select></label>
@@ -498,7 +558,7 @@ body{word-break:keep-all;overflow-wrap:anywhere}
     <div id="peerBody"><div class="empty">친구를 고르면 비교가 시작돼요.</div></div>
   </section>
 
-  <section class="logs" id="adminLogs" hidden aria-label="대화 로그 (관리자)">
+  <section class="logs" data-pane="rec" id="adminLogs" hidden aria-label="대화 로그 (관리자)">
     <div class="examhead">
       <div><h2 class="display">💬 대화 로그</h2><p>관리자에게만 보이는 화면이에요. 학생을 고르면 금쪽이와의 대화를 시간 순서대로 볼 수 있어요.</p></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" id="logLoad">불러오기</button><button class="btn ghost small" id="logCsv" disabled>CSV 저장</button><button class="btn ghost small" id="tormFill" title="이전에 쌓인 기록과 대화 로그로 멘붕 지수를 채웁니다">😵‍💫 이전 기록으로 멘붕 지수 채우기</button></div>
@@ -507,7 +567,7 @@ body{word-break:keep-all;overflow-wrap:anywhere}
     <div class="loggrid"><div class="loglist" id="logList"></div><div class="logview" id="logView"><div class="empty">학생을 선택하세요.</div></div></div>
   </section>
 
-  <section class="chat" aria-label="금쪽이와 대화하기">
+  <section class="chat" data-pane="rec" aria-label="금쪽이와 대화하기">
     <div class="examhead">
       <div><h2 class="display">금쪽이와 대화하기</h2><p>답답한 마음을 마음껏 털어놓으세요. 금쪽이는 노트에 적힌 것만 알고 대답합니다. 대화는 이 기기에 기록으로 남습니다.</p></div>
       <div class="gauge" aria-label="분노 게이지"><span>분노 게이지</span><div class="gbar"><i id="gfill"></i></div><b id="gval">0</b></div>
@@ -1026,13 +1086,13 @@ initHall();
   ["gId","gName"].forEach(x=>{ $(x).addEventListener("input",check); $(x).addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.isComposing&&check()) $("gStart").click(); }); });
   /* ---------- 사용법 안내 (금쪽이가 단계별로 설명) ---------- */
   const TOUR=[
-    {sel:".pick", t:"① 먼저 저한테 보여 줄 <b>시료</b>와 <b>온도</b>를 골라 주세요!"},
-    {sel:".magctl", t:"② 슬라이더를 <b>가까이 끝까지</b> 밀었다가 <b>멀리 끝까지</b> 돌려 주세요. 자석을 댔다가 떼는 거예요!"},
-    {sel:"#teach", t:"③ 그러면 이 버튼이 켜져요. 눌러서 저에게 <b>가르쳐</b> 주세요!"},
-    {sel:".note", t:"④ 배운 장면은 제 노트에 쌓여요. 저는 <b>노트에 있는 것만</b> 알아요!"},
-    {sel:".exam", t:"⑤ 시험 문제를 먼저 읽어 보고, 필요한 장면을 가르친 다음 <b>시험 보기</b>를 눌러 주세요!"},
-    {sel:".hall", t:"⑥ 적은 장면으로 만점이면 <b>쪽집게 교수님</b>, 많이 가르치면 <b>열정적인 교수님</b>!"},
-    {sel:".peer", t:"⑦ 친구를 골라 <b>친구 금쪽이</b>와 비교해 보세요. 결과가 다른 문제를 두고 친구와 이야기하면 더 잘 가르칠 수 있어요! 그럼 시작해요!"}
+    {tab:"teach", sel:".pick", t:"① 먼저 저한테 보여 줄 <b>시료</b>와 <b>온도</b>를 골라 주세요!"},
+    {tab:"teach", sel:".magctl", t:"② 슬라이더를 <b>가까이 끝까지</b> 밀었다가 <b>멀리 끝까지</b> 돌려 주세요. 자석을 댔다가 떼는 거예요!"},
+    {tab:"teach", sel:"#teach", t:"③ 그러면 이 버튼이 켜져요. 눌러서 저에게 <b>가르쳐</b> 주세요!"},
+    {tab:"teach", sel:".note", t:"④ 배운 장면은 제 노트에 쌓여요. 저는 <b>노트에 있는 것만</b> 알아요!"},
+    {tab:"teach", sel:".exam", t:"⑤ 시험 문제를 먼저 읽어 보고, 필요한 장면을 가르친 다음 <b>시험 보기</b>를 눌러 주세요!"},
+    {tab:"peer", sel:".peer", t:"⑥ <b>② 친구와</b> 탭에서 친구 금쪽이와 노트·시험 결과를 비교하고, <b>두 금쪽이가 대화</b>하는 것도 볼 수 있어요!"},
+    {tab:"rec", sel:".hall", t:"⑦ <b>③ 기록·대화</b> 탭에는 명예의 전당과 저와의 대화가 있어요. 적은 장면으로 만점이면 <b>쪽집게 교수님</b>! 그럼 시작해요!"}
   ];
   let ti=0, tEl=null;
   const reduceT=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1047,7 +1107,7 @@ initHall();
     Object.assign(card.style,{top:ct+"px",left:cl+"px"});
   }
   function tourShow(){
-    const st=TOUR[ti]; tEl=document.querySelector(st.sel);
+    const st=TOUR[ti]; if(st.tab) setTab(st.tab,true); tEl=document.querySelector(st.sel);
     $("tourStep").textContent=`사용법 ${ti+1} / ${TOUR.length}`; $("tourText").innerHTML=st.t;
     $("tourNext").textContent= ti===TOUR.length-1 ? "시작하기" : "다음"; $("tourPrev").style.visibility = ti===0 ? "hidden":"visible";
     if(!tEl){ tourPlace(); return; }
@@ -1055,7 +1115,7 @@ initHall();
     tourPlace(); setTimeout(tourPlace, reduceT?0:420);
   }
   function openTour(){ ti=0; $("tour").hidden=false; tourShow(); $("tourNext").focus(); }
-  function closeTour(){ $("tour").hidden=true; LS.set("tourDone",1); window.scrollTo({top:0,behavior:reduceT?"auto":"smooth"}); kid("happy","준비됐어요! 시료와 온도를 골라서 보여 주세요!"); }
+  function closeTour(){ setTab("teach",true); $("tour").hidden=true; LS.set("tourDone",1); window.scrollTo({top:0,behavior:reduceT?"auto":"smooth"}); kid("happy","준비됐어요! 시료와 온도를 골라서 보여 주세요!"); }
   $("tourNext").onclick=()=>{ if(ti<TOUR.length-1){ ti++; tourShow(); } else closeTour(); };
   $("tourPrev").onclick=()=>{ if(ti>0){ ti--; tourShow(); } };
   $("tourSkip").onclick=closeTour;
@@ -1275,6 +1335,7 @@ function renderExam(){
     return `<article class="qcard ${r?(lucky?"lucky":inferred?"infer":ok?"ok":"bad"):""}"><span class="qtag ${q.cls}">${i+1}. ${q.tag}</span><figure class="qfig">${q.fig||""}</figure><p class="qtext">${q.q}</p><div class="opts">${lis}</div>${res}</article>`;
   }).join("");
   { const lk=exam?exam.filter(r=>r.pick===r.ans&&r.guess).length:0, ik=exam?exam.filter(r=>r.pick===r.ans&&!r.guess&&r.infer).length:0;
+    { const ts=$("tabScore"); if(ts) ts.textContent = exam ? `${exam.filter(r=>r.pick===r.ans).length}/12` : ""; }
     $("scoreOut").innerHTML= exam ? `${exam.filter(r=>r.pick===r.ans).length} / 12${ik?` <span class="badge b-infer" style="font-size:13px;vertical-align:middle">추측 ${ik}</span>`:""}${lk?` <span class="badge b-guess" style="font-size:13px;vertical-align:middle">찍기 ${lk}</span>`:""}` : ""; }
   $("qlist").querySelectorAll("[data-why]").forEach(b=>b.onclick=()=>{
     const r=exam[+b.dataset.why], ok=r.pick===r.ans;
@@ -1284,7 +1345,7 @@ function renderExam(){
 
 /* ---------- 친구 금쪽이와 비교하기 ---------- */
 /* var: renderBoards/renderNotes가 이 코드보다 먼저 불릴 수 있어서 TDZ를 피함 */
-var peerSel=null, peerReady=false, peerOpts="";
+var peerSel=null, peerReady=false, peerOpts="", peerSub="cmp";
 /* 주어진 노트로 금쪽이가 12문제를 풀면 어떻게 될지 계산 (찍어서 맞힌 건 정답으로 치지 않음) */
 const ansOf=q=>q.note?q.truth:q.solve((m,T)=>truth(m,T));
 function rawWith(ns){
@@ -1342,17 +1403,22 @@ function renderPeer(){
       <div class="peercard me"><h4>내 금쪽이</h4><div class="big">${sa} / 12</div><div class="sm muted">노트 ${notes.length}장면${ga?` · 찍기 ${ga}문제`:""}</div></div>
       <div class="peercard fr"><h4>${fname} 친구의 금쪽이</h4><div class="big">${sb} / 12</div><div class="sm muted">노트 ${fn.length}장면${gb?` · 찍기 ${gb}문제`:""}${fr.minNotes!=null?` · 최고 기록 ${fr.minNotes}장면 만점`:""}</div></div>
     </div>
-    <p class="sm muted" style="margin:-6px 0 8px">지금 두 노트로 시험을 본다면 이렇게 된다는 예상이에요. 찍어서 맞힌 문제는 점수에 넣지 않았어요.</p>
+    <div class="subtabs" role="tablist" aria-label="친구와 함께 보기"><button role="tab" data-sub="cmp" aria-selected="${peerSub==="cmp"}">📊 노트·문제 비교</button><button role="tab" data-sub="duo" aria-selected="${peerSub==="duo"}">🗣️ 두 금쪽이 대화</button></div>
+    <div class="subpane" data-sub="cmp" ${peerSub==="cmp"?"":"hidden"}>
+    <p class="sm muted" style="margin:0 0 8px">지금 두 노트로 시험을 본다면 이렇게 된다는 예상이에요. 찍어서 맞힌 문제는 점수에 넣지 않았어요.</p>
     <h3 class="display">🗺️ 장면 지도</h3>
     <div class="peerlegend"><span><i class="sc-both"></i>둘 다 가르침 (${both.length})</span><span><i class="sc-me"></i>나만 (${onlyMe.length})</span><span><i class="sc-fr"></i>친구만 (${onlyFr.length})</span></div>
     ${grid}
     <p class="sm" style="margin:8px 0 0"><b>친구만 가르친 장면:</b> ${escH(sceneTxt(onlyFr))}</p>
     <h3 class="display">📝 문제별 비교</h3>
     <div class="scenegrid"><table class="qcmp"><thead><tr><th>#</th><th>문제</th><th class="r">내 금쪽이</th><th class="r">친구 금쪽이</th></tr></thead><tbody>${qrows}</tbody></table></div>
-    <h3 class="display">🗣️ 두 금쪽이 대화시키기</h3>
-    ${duoSec(fr,RA,RB)}
     <div class="talk"><b class="display" style="font-size:18px">💬 친구와 이야기해 보세요</b><ol>${talk.map(t=>`<li>${t}</li>`).join("")}</ol>
-      <div class="memo"><input id="peerMemo" maxlength="200" placeholder="이야기하고 알게 된 점을 한 줄로 남겨 보세요" aria-label="친구와 이야기하고 알게 된 점"><button class="btn small" id="peerMemoBtn">남기기</button></div></div>`;
+      <div class="memo"><input id="peerMemo" maxlength="200" placeholder="이야기하고 알게 된 점을 한 줄로 남겨 보세요" aria-label="친구와 이야기하고 알게 된 점"><button class="btn small" id="peerMemoBtn">남기기</button></div></div>
+    </div>
+    <div class="subpane" data-sub="duo" ${peerSub==="duo"?"":"hidden"}>${duoSec(fr,RA,RB)}</div>`;
+  body.querySelectorAll(".subtabs [data-sub]").forEach(b=>b.onclick=()=>{ peerSub=b.dataset.sub;
+    body.querySelectorAll(".subtabs [data-sub]").forEach(x=>x.setAttribute("aria-selected",String(x.dataset.sub===peerSub)));
+    body.querySelectorAll(".subpane").forEach(x=>x.hidden=x.dataset.sub!==peerSub); });
   const send=()=>{ const t=$("peerMemo").value.trim(); if(!t) return; if(!splitWho(me)){ toast("학번과 이름으로 들어와야 남길 수 있어요."); return; }
     fbLog("me",`[친구 비교 메모 · ${fr.name}] ${t}`); $("peerMemo").value=""; toast("선생님께 메모를 남겼어요!");
     kid("happy",`${fname} 친구랑 이야기했군요! 두 노트를 비교하니까 제가 뭘 더 배워야 할지 알 것 같아요.`); };
@@ -1373,7 +1439,55 @@ function duoSec(fr,RA,RB){
   const key=fr.name+"|"+peerTopic, loading=pt.key===key&&pt.status==="loading";
   return `<p class="sm muted" style="margin:0 0 8px">두 금쪽이가 <b>자기 노트만</b> 가지고 문제 하나를 두고 이야기해요. 대화를 보고 누구 말이 맞는지 판단해 보세요. AI가 만든 대화라서 금쪽이가 틀린 말을 할 수도 있어요!</p>
     <div class="duobar"><select id="duoTopic" aria-label="대화 주제 문제">${order.map(i=>`<option value="${i}" ${i===peerTopic?"selected":""}>${i+1}번 ${QS[i].tag}${diffs.includes(i)?" · 두 금쪽이 답이 달라요":""}</option>`).join("")}</select><button class="btn small" id="duoGo" ${loading?"disabled":""}>대화 시작</button></div>
+    ${duoStageHTML(fr)}
     <div id="duoBox"></div>`;
+}
+/* 금쪽이·박사님 그림은 화면에 있는 SVG를 복제해서 씀 (A: 내 쪽, B: 친구 쪽은 좌우 반전) */
+function duoArt(){
+  if(duoArt.c) return duoArt.c;
+  const k=$("kid").cloneNode(true);
+  const mo=k.querySelector("#mouth"), pp=k.querySelector("#pupils");
+  if(mo){ mo.setAttribute("d","M90 104 Q100 112 110 104"); mo.setAttribute("fill","none"); mo.setAttribute("class","mclosed");
+    const op=document.createElementNS("http://www.w3.org/2000/svg","ellipse"); op.setAttribute("class","mopen"); op.setAttribute("cx","100"); op.setAttribute("cy","107"); op.setAttribute("rx","8"); op.setAttribute("ry","6.5"); op.setAttribute("fill","#7A3B2E"); mo.after(op); }
+  if(pp){ pp.removeAttribute("transform"); pp.setAttribute("class","pp"); }
+  k.querySelectorAll(".fx").forEach(e=>e.remove());
+  k.removeAttribute("id"); k.querySelectorAll("[id]").forEach(e=>e.removeAttribute("id"));
+  k.setAttribute("class","dk"); k.removeAttribute("role"); k.removeAttribute("aria-label"); k.setAttribute("aria-hidden","true");
+  const d=document.querySelector(".docsvg").cloneNode(true);
+  d.setAttribute("class","dd"); d.removeAttribute("role"); d.removeAttribute("aria-label"); d.setAttribute("aria-hidden","true");
+  const kidA=k.outerHTML, docA=d.outerHTML;
+  duoArt.c={kidA, kidB:kidA.split('fill="var(--hair)"').join('fill="#7A4A2A"'), docA, docB:docA.split('#4A3426').join('#26262C')};
+  return duoArt.c;
+}
+function duoStageHTML(fr){
+  const a=duoArt(), fn=escH(String(fr.name).replace(/^\S+\s/,""));
+  return `<div class="duostage" id="duoStage" role="img" aria-label="왼쪽에 내 금쪽이, 오른쪽에 ${fn}의 금쪽이가 마주 보고, 양쪽 끝에서 두 박사님이 지켜보는 장면">
+    <div class="dsbubs"><div class="dsbub a" id="bubA" aria-live="off"></div><div class="dsbub b" id="bubB" aria-live="off"></div></div>
+    <div class="dsthink" id="dsThink" hidden>두 금쪽이가 생각하는 중… 🤔</div>
+    <div class="dsrow">
+      <figure class="dsdoc a">${a.docA}<figcaption>나 (박사님)</figcaption></figure>
+      <figure class="dskid a" data-w="A">${a.kidA}<figcaption>내 금쪽이</figcaption></figure>
+      <figure class="dskid b" data-w="B">${a.kidB}<figcaption>${fn}의 금쪽이</figcaption></figure>
+      <figure class="dsdoc b">${a.docB}<figcaption>${fn} 박사님</figcaption></figure>
+    </div></div>`;
+}
+/* 무대 갱신: 말하는 금쪽이 위에 말풍선, 입 움직임, 듣는 쪽은 끄덕끄덕 */
+function paintStage(){
+  const st=$("duoStage"); if(!st||!duoCur) return;
+  const on=pt.key===duoCur.key;
+  let spk=null, txt="", dots=false, talking=false, think=false;
+  if(on){
+    if(pt.typing){ const L=pt.lines[pt.typing.i]; spk=L.w; txt=[...L.t].slice(0,pt.typing.n).join(""); talking=true; }
+    else if(pt.wait){ spk=pt.wait; dots=true; }
+    else if(pt.status==="loading"&&pt.shown===0) think=true;
+    else if(pt.shown>0){ const L=pt.lines[pt.shown-1]; spk=L.w; txt=L.t; }
+  }
+  for(const w of ["A","B"]){
+    const b=$("bub"+w), show=spk===w; b.classList.toggle("on",show);
+    if(show){ if(dots){ if(!b.querySelector(".dots")) b.innerHTML='<span class="dots"><span></span><span></span><span></span></span>'; } else if(b.textContent!==txt||b.querySelector(".dots")) b.textContent=txt; }
+  }
+  $("dsThink").hidden=!think;
+  st.querySelectorAll(".dskid").forEach(f=>{ const me=f.dataset.w===spk; f.classList.toggle("talking",talking&&me); f.classList.toggle("listening",talking&&!me); });
 }
 function bindDuo(fr,fn,RA,RB){
   duoCur={fr,fn,RA,RB,fname:String(fr.name).replace(/^\S+\s/,""),key:fr.name+"|"+peerTopic};
@@ -1448,11 +1562,8 @@ function paintDuo(){
   const box=$("duoBox"); if(!box||!duoCur) return;
   if(pt.key!==duoCur.key){ box.innerHTML=""; return; }
   const line=(l,txt,cls)=>`<div class="ln ${l.w==="A"?"a":"b"} ${cls||""}"><small>${escH(duoName(l.w))}</small><span class="tx">${escH(txt)}</span>${cls==="typing"?'<i class="caret"></i>':""}</div>`;
-  let h=`<div class="duo">`+pt.lines.slice(0,pt.shown).map(l=>line(l,l.t)).join("");
-  if(pt.typing) h+=line(pt.lines[pt.typing.i],[...pt.lines[pt.typing.i].t].slice(0,pt.typing.n).join(""),"typing");
-  else if(pt.wait) h+=`<div class="ln ${pt.wait==="A"?"a":"b"} wait"><small>${escH(duoName(pt.wait))}</small><span class="dots" aria-label="입력 중"><span></span><span></span><span></span></span></div>`;
-  else if(pt.status==="loading"&&pt.shown===0) h+=`<div class="ln think">두 금쪽이가 생각하는 중… 🤔</div>`;
-  h+=`</div>`;
+  const logOpen=!!(box.querySelector("details.duolog")||{}).open;
+  let h=pt.shown?`<details class="duolog" ${logOpen?"open":""}><summary>📜 대화 기록 보기 (${pt.shown}줄)</summary><div class="duo">`+pt.lines.slice(0,pt.shown).map(l=>line(l,l.t)).join("")+`</div></details>`:"";
   if(pt.status==="loading"&&(pt.shown>0||pt.typing)&&!pt.skip) h+=`<button class="btn ghost small duoskip" id="duoSkip">⏩ 바로 보기</button>`;
   if(pt.note) h+=`<p class="sm muted" style="margin:4px 0">${escH(pt.note)}</p>`;
   if(pt.status==="done"){
@@ -1460,7 +1571,7 @@ function paintDuo(){
     if(!pt.judged) h+=`<div class="judge"><b>누구 말이 맞을까요?</b><div class="row">${Object.entries(JL).map(([k,l])=>`<button class="btn ghost small" data-j="${k}">${l}</button>`).join("")}</div></div>`;
     else h+=`<div class="judge done"><b>${pt.judged===T.key?"✓ 정확하게 판단했어요!":"✗ 다시 생각해 봐요"}</b> 정답은 <b>${NUMS[pt.A.ans]} ${escH(q.c[pt.A.ans])}</b>예요. 내 금쪽이 ${T.aOk?"맞음":"틀림"}${pt.A.guess?"(찍기)":""} · 친구 금쪽이 ${T.bOk?"맞음":"틀림"}${pt.B.guess?"(찍기)":""}<br><span class="sm">금쪽이가 자신 있게 말해도 노트에 그 장면이 없으면 틀릴 수 있어요. 어떤 장면을 보여 주면 확실해질까요?</span></div>`;
   }
-  box.innerHTML=h;
+  box.innerHTML=h; paintStage();
   const sk=$("duoSkip"); if(sk) sk.onclick=()=>{ pt.skip=true; paintDuo(); };
   box.querySelectorAll("[data-j]").forEach(b=>b.onclick=()=>{
     pt.judged=b.dataset.j; const T=duoTruth();
@@ -1470,8 +1581,7 @@ function paintDuo(){
 }
 /* 글자 하나 칠 때마다 전체를 다시 그리지 않고, 타이핑 중인 줄만 바꿈 */
 function paintTyping(){
-  const el=pt.key===(duoCur&&duoCur.key) && document.querySelector("#duoBox .ln.typing .tx");
-  if(el) el.textContent=[...pt.lines[pt.typing.i].t].slice(0,pt.typing.n).join(""); else paintDuo();
+  if(pt.key===(duoCur&&duoCur.key)) paintStage();
 }
 async function playDuo(mine){
   while(pt===mine){
@@ -1525,6 +1635,19 @@ async function startDuo(){
   }
   mine.gen="done";
 }
+
+/* ---------- 탭 (① 가르치기 / ② 친구와 / ③ 기록·대화) ---------- */
+function setTab(t,noScroll){
+  if(!["teach","peer","rec"].includes(t)) t="teach";
+  document.body.dataset.tab=t; LS.set("tab",t);
+  document.querySelectorAll("#tabs [data-tab]").forEach(b=>{ const on=b.dataset.tab===t; b.setAttribute("aria-selected",String(on)); b.tabIndex=on?0:-1; });
+  if(!noScroll){ const mc=document.querySelector(".maincol"); const y=mc.getBoundingClientRect().top+window.scrollY-12; if(window.scrollY>y) window.scrollTo({top:y}); }
+}
+document.querySelectorAll("#tabs [data-tab]").forEach(b=>{
+  b.onclick=()=>setTab(b.dataset.tab);
+  b.onkeydown=e=>{ if(e.key!=="ArrowRight"&&e.key!=="ArrowLeft") return; const bs=[...document.querySelectorAll("#tabs [data-tab]")]; const i=bs.indexOf(b), n=bs[(i+(e.key==="ArrowRight"?1:bs.length-1))%bs.length]; n.focus(); setTab(n.dataset.tab); };
+});
+setTab(LS.get("tab","teach"),true);
 
 peerReady=true; renderPeer();
 
