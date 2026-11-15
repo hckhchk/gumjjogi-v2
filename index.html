@@ -285,6 +285,12 @@ body:not([data-tab="teach"]) .maincol>.note{display:none}
 .duolog>summary{cursor:pointer;color:var(--muted);font-size:13px}
 @media (max-width:600px){.dsbub{font-size:14px;padding:6px 9px}.dsbubs{min-height:110px;gap:8px;padding:0}.dsrow figcaption{font-size:10.5px}}
 @media (prefers-reduced-motion:reduce){.dskid .body,.dskid .mopen,.dskid .mclosed,.dsbub .dots span{animation:none!important}}
+.reflect{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px}
+.rfq{margin:0 0 6px;padding-left:22px}
+.rfq li{margin:0 0 12px}
+.rfq label{display:block;font-weight:500;margin-bottom:4px;line-height:1.5}
+.rfq textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font:inherit;color:inherit;resize:vertical;line-height:1.5}
+.rfbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 .duobar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
 .duobar select{padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;max-width:100%}
 .duo{display:flex;flex-direction:column;gap:6px;margin:6px 0}
@@ -558,10 +564,23 @@ body{word-break:keep-all;overflow-wrap:anywhere}
     <div id="peerBody"><div class="empty">친구를 고르면 비교가 시작돼요.</div></div>
   </section>
 
+  <section class="reflect" data-pane="rec" aria-label="오늘의 성찰">
+    <div class="examhead">
+      <div><h2 class="display">📝 오늘의 성찰</h2><p>수업을 마치며 세 가지를 적어 주세요. <b>선생님만</b> 볼 수 있어요. 제출한 뒤에도 고쳐서 다시 낼 수 있어요.</p></div>
+      <label class="pcount peerpick">차시 <select id="rfLesson" aria-label="몇 차시 성찰인지"><option value="1">1차시</option><option value="2">2차시</option></select></label>
+    </div>
+    <ol class="rfq">
+      <li><label for="rf1">금쪽이가 틀린 문제의 원인은 무엇이었나요? 어떤 장면을 가르쳐서 해결했나요(또는 해결하려 했나요)?</label><textarea id="rf1" rows="3" maxlength="600"></textarea></li>
+      <li><label for="rf2">친구 금쪽이와 비교하거나 두 금쪽이의 대화를 보고 새로 알게 된 점은 무엇인가요?</label><textarea id="rf2" rows="3" maxlength="600"></textarea></li>
+      <li><label for="rf3">AI의 말을 그대로 믿으면 안 되는 때는 언제일까요? 오늘 활동에서 근거를 들어 써 보세요.</label><textarea id="rf3" rows="3" maxlength="600"></textarea></li>
+    </ol>
+    <div class="rfbar"><span id="rfStatus" class="pcount"></span><button class="btn" id="rfSend">제출하기</button></div>
+  </section>
+
   <section class="logs" data-pane="rec" id="adminLogs" hidden aria-label="대화 로그 (관리자)">
     <div class="examhead">
       <div><h2 class="display">💬 대화 로그</h2><p>관리자에게만 보이는 화면이에요. 학생을 고르면 금쪽이와의 대화를 시간 순서대로 볼 수 있어요.</p></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" id="logLoad">불러오기</button><button class="btn ghost small" id="logCsv" disabled>CSV 저장</button><button class="btn ghost small" id="tormFill" title="이전에 쌓인 기록과 대화 로그로 멘붕 지수를 채웁니다">😵‍💫 이전 기록으로 멘붕 지수 채우기</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" id="logLoad">불러오기</button><button class="btn ghost small" id="logCsv" disabled>CSV 저장</button><button class="btn ghost small" id="evCsv" title="가르치기·시험·비교·판단·성찰 기록을 시간순으로 내려받아요">📊 과정 기록 CSV</button><button class="btn ghost small" id="tormFill" title="이전에 쌓인 기록과 대화 로그로 멘붕 지수를 채웁니다">😵‍💫 이전 기록으로 멘붕 지수 채우기</button></div>
     </div>
     <div class="logfilter"><label class="pcount">반 <select id="logBan"></select></label><span id="logInfo" class="pcount">‘불러오기’를 누르면 최신 대화를 가져와요.</span></div>
     <div class="loggrid"><div class="loglist" id="logList"></div><div class="logview" id="logView"><div class="empty">학생을 선택하세요.</div></div></div>
@@ -812,6 +831,29 @@ function fbSave(){
     }).catch(e=>console.warn("저장 실패",e));
   },700);
 }
+/* ---------- 학습 과정 기록 (과정중심평가용) ----------
+   새 저장소 gumjjogi_v2_events 에 '추가만' 한다. 기존 학생 기록·대화 로그는 읽거나 고치지 않음.
+   저장에 실패하면(인터넷 끊김, 보안 규칙 미설정) 이 기기에 모아 두었다가 다음에 다시 보낸다. */
+const EV_COL=FB_COL+"_events";
+function logEv(type,data){
+  const u=splitWho(who()); if(!u) return;
+  const ev={id:u.id,name:u.name,ban:u.teacher?"교사":u.id[0]+"-"+(+u.id.slice(1,3)),type,at:Date.now(),data:data||{}};
+  const q=LS.get("evq",[]); q.push(ev); LS.set("evq",q.slice(-500));
+  flushEv();
+}
+let evBusy=false;
+async function flushEv(){
+  if(evBusy||!fb) return; evBusy=true;
+  try{
+    for(;;){
+      const q=LS.get("evq",[]); if(!q.length) break;
+      const ev=q[0];
+      try{ await fb.collection(EV_COL).add(ev); }catch(e){ console.warn("과정 기록 저장 실패 — 이 기기에 보관했다가 다시 보내요",e&&e.code); break; }
+      const cur=LS.get("evq",[]); if(cur.length&&cur[0].at===ev.at&&cur[0].type===ev.type){ cur.shift(); LS.set("evq",cur); } else break;
+    }
+  } finally { evBusy=false; }
+}
+setInterval(()=>{ if(!document.hidden) flushEv(); },60000);
 function fbLog(w,text){ const u=splitWho(who()); if(!fb||!u) return; fb.collection(FB_COL+"_chat").add({id:u.id,name:u.name,who:w,text:String(text).slice(0,300),at:Date.now()}).catch(()=>{}); }
 async function fbRestore(){
   const u=splitWho(who()); if(!fb||!u||notes.length||taught.length) return;
@@ -927,7 +969,7 @@ function setupAdmin(){
     btn.textContent = isAdmin ? "관리자 로그아웃" : "🔐 관리자";
     $("adminBar").hidden=!isAdmin;
     $("adminLogs").hidden=!isAdmin;
-    if(isAdmin){ $("logLoad").onclick=loadLogs; $("logCsv").onclick=downloadLogs; $("tormFill").onclick=fillTormFromHistory; if(!logData.length) loadLogs(); }
+    if(isAdmin){ $("evCsv").onclick=downloadEvents; $("logLoad").onclick=loadLogs; $("logCsv").onclick=downloadLogs; $("tormFill").onclick=fillTormFromHistory; if(!logData.length) loadLogs(); }
     else { logData=[]; logSel=null; }
     $("adminBar").textContent = isAdmin ? `관리자 모드 (${u.email}) — 순위표의 🗑을 두 번 누르면 그 박사님의 기록과 대화 로그가 삭제돼요.` : "";
     renderBoards();
@@ -999,6 +1041,34 @@ async function fillTormFromHistory(){
   }catch(e){ console.warn(e); toast("채우지 못했어요: "+((e&&e.code)||e)); }
   btn.disabled=false; btn.textContent="😵‍💫 이전 기록으로 멘붕 지수 채우기";
 }
+/* 과정 기록 내려받기 (관리자) — 읽기만 함 */
+async function downloadEvents(){
+  if(!fb||!isAdmin) return;
+  const btn=$("evCsv"); btn.disabled=true; btn.textContent="불러오는 중…";
+  try{
+    const q=await fb.collection(EV_COL).get();
+    const rows=q.docs.map(d=>d.data()).filter(x=>x&&x.id&&(logBanSel==="전체"||banOfId(x.id)===logBanSel)).sort((a,b)=>String(a.id).localeCompare(String(b.id),undefined,{numeric:true})||(a.at||0)-(b.at||0));
+    const TY={teach:"가르치기",unteach:"장면 지우기",reset:"처음부터 다시",exam:"시험",peer:"친구 선택",memo:"비교 메모",duo:"두 금쪽이 대화",judge:"누구 말이 맞을까 판단",reflect:"성찰"};
+    const desc=e=>{ const d=e.data||{}; switch(e.type){
+      case "teach": return `${d.scene} → ${KN[d.k]||d.k} (노트 ${d.n}장면)`;
+      case "unteach": return `${d.scene} 지움 (노트 ${d.n}장면)`;
+      case "reset": return `노트 ${d.n}장면 모두 지움`;
+      case "exam": return `${d.try}회차 ${d.score}/12 (확실 ${d.sure}, 추측 ${(d.infer||[]).length}, 찍기 ${(d.guess||[]).length}) · 틀림: ${(d.wrong||[]).join(",")||"없음"} · 노트 ${d.n}장면`;
+      case "peer": return `${d.friend}`;
+      case "memo": return `[${d.friend}] ${d.text}`;
+      case "duo": return `${d.friend}와 ${d.q}번 (내 답 ${d.mine||"모름"}, 친구 답 ${d.theirs||"모름"})`;
+      case "judge": return `${d.friend} · ${d.q}번: ${d.pick} → ${d.correct?"정확":"틀림"} (정답: ${d.answer})`;
+      case "reflect": return `${d.lesson}차시 | 1) ${d.a1} | 2) ${d.a2} | 3) ${d.a3}`;
+      default: return JSON.stringify(d); } };
+    const c=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+    const csv="\uFEFF"+["시각,학번,이름,반,기록,내용",...rows.map(e=>[c(e.at?new Date(e.at).toLocaleString("ko-KR"):""),c(String(e.id).startsWith("교사")?"교사":e.id),c(e.name),c(banOfId(e.id)),c(TY[e.type]||e.type),c(desc(e))].join(","))].join("\r\n");
+    const d=new Date(), stamp=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+    const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+    a.download=`금쪽이_과정기록_${logBanSel==="전체"?"전체":logBanSel}_${stamp}.csv`; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1000);
+    toast(`과정 기록 ${rows.length}건을 내려받았어요.`);
+  }catch(e){ console.warn(e); toast("과정 기록을 불러오지 못했어요 ("+((e&&e.code)||e)+"). 보안 규칙을 확인하세요."); }
+  btn.disabled=false; btn.textContent="📊 과정 기록 CSV";
+}
 function downloadLogs(){
   const rows=logData.filter(m=>logBanSel==="전체"||banOfId(m.id)===logBanSel);
   const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
@@ -1029,7 +1099,7 @@ async function initHall(){
       hallRows=snap.docs.map(d=>{const r=d.data(); return {id:d.id,name:dispName(r),minNotes:r.minNotes??null,attempts:r.minAttempts,minAt:r.minAt,teach:r.teach||0,teachAt:r.teachAt,torm:r.torm||null,notes:Array.isArray(r.notes)?r.notes:[],lastScore:r.lastScore??null};});
       $("hallMode").textContent="🔴 실시간 — 다른 박사님의 기록이 바로바로 반영돼요."; renderBoards();
     },e=>{ $("hallMode").textContent="기록을 불러올 권한이 없어요. 선생님께 알려 주세요."; });
-    setupAdmin();
+    setupAdmin(); flushEv();
     if(who()){ await fbRestore(); fbSave(); }
     return;
   }
@@ -1146,6 +1216,7 @@ $("teach").onclick=()=>{
   if(notes.some(n=>n.m===st.m&&n.e===st.e)){ kid("confused","이 장면은 이미 이해했어요! 다른 장면을 보여 주세요."); return; }
   const k=truth(st.m,ENVS[st.e].T);
   notes.push({m:st.m,e:st.e,k}); LS.set("notes",notes); renderNotes();
+  logEv("teach",{m:st.m,e:st.e,scene:`${MATS[st.m].name} ${ENVS[st.e].T} K`,k,n:notes.length});
   kid("happy",`이해했어요! ${MATS[st.m].name}${batchim(MATS[st.m].name)?"은":"는"} ${ENVS[st.e].T} K에서 ${KN[k]}!`);
   { const key=st.m+"-"+st.e; if(!taught.includes(key)){ taught.push(key); teachTotal=taught.length; teachAt=Date.now(); LS.set("taught",taught); LS.set("teachAt",teachAt); saveRecord(); } }
   if(exam){ exam=null; renderExam(); }
@@ -1154,7 +1225,7 @@ function renderNotes(){
   $("slotOut").textContent=`${notes.length}장면`; renderPeer();
   if(!notes.length){ $("noteList").innerHTML=`<li class="empty">아직 배운 장면이 없어요.</li>`; return; }
   $("noteList").innerHTML=notes.map((n,i)=>`<li><span>${MATS[n.m].name} · ${ENVS[n.e].T} K → <b class="k-${n.k}">${KN[n.k]}</b></span><button data-i="${i}" aria-label="이 장면 지우기">×</button></li>`).join("");
-  $("noteList").querySelectorAll("button").forEach(b=>b.onclick=()=>{notes.splice(+b.dataset.i,1); bumpTorm("wipes");LS.set("notes",notes);renderNotes();if(exam){exam=null;renderExam();}});
+  $("noteList").querySelectorAll("button").forEach(b=>b.onclick=()=>{ { const d=notes[+b.dataset.i]; if(d) logEv("unteach",{m:d.m,e:d.e,scene:`${MATS[d.m].name} ${ENVS[d.e].T} K`,n:notes.length-1}); } notes.splice(+b.dataset.i,1); bumpTorm("wipes");LS.set("notes",notes);renderNotes();if(exam){exam=null;renderExam();}});
 }
 
 /* ---------- 금쪽이의 판단 (가장 비슷한 장면 떠올리기) ---------- */
@@ -1308,6 +1379,10 @@ $("examBtn").onclick=()=>{
   exam=QS.map(runQ);
   attempts++; LS.set("attempts",attempts); bumpTorm("exams");
   lastScore=exam.filter(r=>r.pick===r.ans).length; lastAt=Date.now(); setTimeout(sheetSave,0);
+  { const qn=f=>exam.map((r,i)=>f(r)?i+1:0).filter(Boolean);
+    logEv("exam",{try:attempts,score:lastScore,sure:exam.filter(r=>r.pick===r.ans&&!r.guess&&!r.infer).length,
+      infer:qn(r=>r.pick===r.ans&&!r.guess&&r.infer),guess:qn(r=>r.pick===r.ans&&r.guess),wrong:qn(r=>r.pick!==r.ans),
+      n:notes.length,scenes:notes.map(n=>`${MATS[n.m].name} ${ENVS[n.e].T} K`)}); }
   renderExam();
   const s=exam.filter(r=>r.pick===r.ans).length, lucky=exam.filter(r=>r.pick===r.ans&&r.guess).length;
   if(s===12 && lucky===0){
@@ -1367,7 +1442,7 @@ function renderPeer(){
   sel.disabled=!friends.length;
   const opts=`<option value="">${friends.length?"— 친구 고르기 —":"아직 노트가 있는 친구가 없어요"}</option>`+order.map(b=>`<optgroup label="${b==="교사"?"교사":b+"반"}${b===myBan?" (우리 반)":""}">${groups.get(b).map(r=>`<option value="${escH(r.name)}" ${r.name===peerSel?"selected":""}>${escH(r.name)} · ${r.notes.length}장면</option>`).join("")}</optgroup>`).join("");
   if(opts!==peerOpts){ sel.innerHTML=opts; peerOpts=opts; }  /* 목록이 그대로면 다시 그리지 않음 (열어 둔 목록이 닫히지 않게) */
-  sel.onchange=()=>{ peerSel=sel.value||null; renderPeer(); };
+  sel.onchange=()=>{ peerSel=sel.value||null; if(peerSel) logEv("peer",{friend:peerSel}); renderPeer(); };
   const fr=friends.find(r=>r.name===peerSel);
   if(!fr){ body.innerHTML=`<div class="empty">${friends.length?"위에서 친구를 고르면 두 금쪽이를 비교할 수 있어요. 우리 반 친구가 맨 위에 있어요.":"친구들이 금쪽이를 가르치기 시작하면 여기에서 비교할 수 있어요."}</div>`; return; }
   const fn=fr.notes.filter(n=>n&&MATS[n.m]&&ENVS[n.e]&&KN[n.k]);
@@ -1420,7 +1495,7 @@ function renderPeer(){
     body.querySelectorAll(".subtabs [data-sub]").forEach(x=>x.setAttribute("aria-selected",String(x.dataset.sub===peerSub)));
     body.querySelectorAll(".subpane").forEach(x=>x.hidden=x.dataset.sub!==peerSub); });
   const send=()=>{ const t=$("peerMemo").value.trim(); if(!t) return; if(!splitWho(me)){ toast("학번과 이름으로 들어와야 남길 수 있어요."); return; }
-    fbLog("me",`[친구 비교 메모 · ${fr.name}] ${t}`); $("peerMemo").value=""; toast("선생님께 메모를 남겼어요!");
+    fbLog("me",`[친구 비교 메모 · ${fr.name}] ${t}`); logEv("memo",{friend:fr.name,text:t.slice(0,300)}); $("peerMemo").value=""; toast("선생님께 메모를 남겼어요!");
     kid("happy",`${fname} 친구랑 이야기했군요! 두 노트를 비교하니까 제가 뭘 더 배워야 할지 알 것 같아요.`); };
   if(keep){ $("peerMemo").value=keep.v; if(keep.f) $("peerMemo").focus(); }
   $("peerMemoBtn").onclick=send;
@@ -1575,6 +1650,7 @@ function paintDuo(){
   const sk=$("duoSkip"); if(sk) sk.onclick=()=>{ pt.skip=true; paintDuo(); };
   box.querySelectorAll("[data-j]").forEach(b=>b.onclick=()=>{
     pt.judged=b.dataset.j; const T=duoTruth();
+    logEv("judge",{friend:duoCur.fr.name,q:pt.qi+1,pick:JL[pt.judged],answer:JL[T.key],correct:pt.judged===T.key});
     fbLog("me",`[금쪽이 대화 판단 · ${duoCur.fr.name} · ${pt.qi+1}번] 내 판단: ${JL[pt.judged]} → ${pt.judged===T.key?"정확":"틀림"}`);
     paintDuo();
   });
@@ -1618,6 +1694,7 @@ async function startDuo(){
   const cur=duoCur, qi=peerTopic, A=cur.RA[qi], B=cur.RB[qi];
   pt={key:cur.key,qi,A,B,lines:[],gen:"run",shown:0,typing:null,wait:null,skip:false,status:"loading",judged:null,note:""};
   const mine=pt; const g=$("duoGo"); if(g) g.disabled=true; paintDuo();
+  logEv("duo",{friend:cur.fr.name,q:qi+1,mine:A.pick<0?0:A.pick+1,theirs:B.pick<0?0:B.pick+1,diff:A.pick!==B.pick});
   playDuo(mine);
   let ok=false;
   if(sampleFn){
@@ -1648,6 +1725,31 @@ document.querySelectorAll("#tabs [data-tab]").forEach(b=>{
   b.onkeydown=e=>{ if(e.key!=="ArrowRight"&&e.key!=="ArrowLeft") return; const bs=[...document.querySelectorAll("#tabs [data-tab]")]; const i=bs.indexOf(b), n=bs[(i+(e.key==="ArrowRight"?1:bs.length-1))%bs.length]; n.focus(); setTab(n.dataset.tab); };
 });
 setTab(LS.get("tab","teach"),true);
+
+/* ---------- 오늘의 성찰 ---------- */
+(function(){
+  const ids=["rf1","rf2","rf3"], key=()=>"rf:"+who();
+  const fmt=ms=>new Date(ms).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"});
+  function load(){
+    const d=LS.get(key(),{});
+    ids.forEach((id,i)=>{ $(id).value=(d.a&&d.a[i])||""; });
+    $("rfLesson").value=d.lesson||LS.get("rfLessonLast","1");
+    $("rfStatus").textContent = d.sentAt ? `✓ ${fmt(d.sentAt)}에 ${d.sentLesson}차시 성찰을 제출했어요.` + (d.dirty?" (고친 내용은 아직 제출 전)":"") : "아직 제출하지 않았어요.";
+  }
+  function save(dirty){ const d=LS.get(key(),{}); d.a=ids.map(id=>$(id).value); d.lesson=$("rfLesson").value; if(dirty&&d.sentAt) d.dirty=true; LS.set(key(),d); }
+  ids.forEach(id=>$(id).addEventListener("input",()=>{ save(true); load(); }));
+  $("rfLesson").onchange=()=>{ save(false); LS.set("rfLessonLast",$("rfLesson").value); };
+  $("rfSend").onclick=()=>{
+    if(!splitWho(who())){ toast("학번과 이름으로 들어와야 제출할 수 있어요."); return; }
+    const a=ids.map(id=>$(id).value.trim());
+    if(a.filter(Boolean).length<3){ toast("세 질문에 모두 답해 주세요."); const e=ids.find((id,i)=>!a[i]); if(e) $(e).focus(); return; }
+    logEv("reflect",{lesson:+$("rfLesson").value,a1:a[0].slice(0,600),a2:a[1].slice(0,600),a3:a[2].slice(0,600)});
+    const d=LS.get(key(),{}); d.sentAt=Date.now(); d.sentLesson=$("rfLesson").value; d.dirty=false; LS.set(key(),d); load();
+    toast("성찰을 제출했어요. 선생님께 전달돼요!");
+    kid("happy","오늘 저를 가르치면서 박사님도 많이 생각하셨군요! 고맙습니다.");
+  };
+  load(); $("who").addEventListener("change",load);
+})();
 
 peerReady=true; renderPeer();
 
@@ -2140,7 +2242,7 @@ function glide(tx){ cancelAnimationFrame(anim); const ty=PIV.y+LEN+SH/2; let las
 $("magR").addEventListener("input",e=>glide(REST+gapOf(+e.target.value)));
 
 /* ---------- 초기화 ---------- */
-armConfirm($("resetAll"),()=>{ if(notes.length) bumpTorm("wipes"); notes=[]; LS.set("notes",notes); exam=null; attempts=0; LS.set("attempts",0); st.m=0; st.e=2; st.magnetized=false; sceneChanged(true); renderNotes(); renderExam(); kid("idle","새 학기가 시작됐어요! 자성에 대해 하나도 몰라요."); toast("노트와 시험 결과를 지웠습니다."); });
+armConfirm($("resetAll"),()=>{ logEv("reset",{n:notes.length}); if(notes.length) bumpTorm("wipes"); notes=[]; LS.set("notes",notes); exam=null; attempts=0; LS.set("attempts",0); st.m=0; st.e=2; st.magnetized=false; sceneChanged(true); renderNotes(); renderExam(); kid("idle","새 학기가 시작됐어요! 자성에 대해 하나도 몰라요."); toast("노트와 시험 결과를 지웠습니다."); });
 
 renderChips(); renderLabInfo(); renderNotes(); renderExam(); renderChat();
 st.my=PIV.y+LEN+SH/2;
