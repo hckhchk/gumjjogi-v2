@@ -1601,7 +1601,9 @@ $("saveLog").onclick=async()=>{
 const AI_SDK="12.19.0";
 /* App Check (Fraud Defense, 이전 reCAPTCHA Enterprise) 사이트 키 — AI 요청이 우리 사이트에서 온 것임을 증명 */
 const APPCHECK_KEY = "6LeVgAkuAAAAAPEFGx2nc4QvQjw19hmzSN4lvaEm";
-const AI_MODELS=["gemini-3.1-flash-lite","gemini-3.5-flash-lite","gemini-2.5-flash-lite","gemini-2.5-flash"];
+/* 앞에서부터 시도. 한도(429)가 차면 다음 모델로 넘어가고, 다음 질문에서는 다시 맨 앞 모델부터 시도함 */
+const AI_MODELS=["gemini-3.5-flash-lite","gemini-3.1-flash-lite","gemini-2.5-flash-lite","gemini-2.5-flash"];
+const modelName=n=>n.replace(/^gemini-/,"Gemini ").replace(/-flash-lite$/," Flash-Lite").replace(/-flash$/," Flash");
 let aiCool=0;
 function aiErrText(e){
   const msg=String((e&&e.message)||e);
@@ -1623,23 +1625,25 @@ async function initGeminiChat(){
       catch(e){ console.warn("App Check 초기화 실패",e); }
     }
     const ai=aiMod.getAI(app,{backend:new aiMod.GoogleAIBackend()});
-    let order=AI_MODELS.slice(); const saved=LS.get("aiModel",null); if(saved&&order.includes(saved)) order=[saved,...order.filter(x=>x!==saved)];
+    /* 순서는 고정. 이 기기에서 '없는 모델'(404)로 확인된 것만 빼 둠 — 한도 초과(429)는 잠깐이라 기억하지 않음 */
+    let gone=LS.get("aiGone",[]); if(!Array.isArray(gone)) gone=[];
     sampleFn=async(prompt,opts={})=>{
       if(Date.now()<aiCool) throw {code:"cooldown"};
       let lastErr=null, fullN=0;
+      const order=AI_MODELS.filter(x=>!gone.includes(x)); if(!order.length){ gone=[]; order.push(...AI_MODELS); }
       for(const name of order){
         try{
           const model=aiMod.getGenerativeModel(ai,{model:name,generationConfig:{maxOutputTokens:1500,temperature:0.8}});
           const res=await model.generateContentStream(prompt);
           let acc=""; for await(const ch of res.stream){ let t=""; try{ t=ch.text()||""; }catch(_){ } if(t){ acc+=t; opts.onText&&opts.onText({text:acc}); } }
           if(!acc.trim()){ lastErr=new Error("[204 ] 빈 응답 (생각만 하고 대답을 못 했어요)"); continue; }
-          if(order[0]!==name){ order=[name,...order.filter(x=>x!==name)]; LS.set("aiModel",name); }
-          $("aiMode").textContent="AI 금쪽이와 대화 중 (Gemini) — 연결이 안 되면 기본 대화로 자동 전환돼요";
+          $("aiMode").textContent=`AI 금쪽이와 대화 중 (${modelName(name)}) — 연결이 안 되면 기본 대화로 자동 전환돼요`;
           return {text:acc};
         }catch(e){
           lastErr=e; const msg=String((e&&e.message)||e);
           if(/429|quota|RESOURCE_EXHAUSTED/i.test(msg)){ fullN++; continue; }  // 이 모델의 무료 한도가 찼으면 다음 모델로 (모델마다 한도가 따로)
           if(!/404|not found|NOT_FOUND|not supported|unsupported/i.test(msg)) throw e;  // 모델 이름 문제일 때만 다음 모델 시도
+          if(!gone.includes(name)){ gone.push(name); LS.set("aiGone",gone); }  // 없는 모델은 이 기기에서 다음부터 건너뜀
         }
       }
       if(fullN) aiCool=Date.now()+60000;  // 모든 모델이 가득 찼으면 1분 쉬기
