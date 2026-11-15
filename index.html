@@ -290,6 +290,36 @@ body:not([data-tab="teach"]) .maincol>.note{display:none}
 .rfq label{display:block;font-weight:500;margin-bottom:4px;line-height:1.5}
 .rfq textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font:inherit;color:inherit;resize:vertical;line-height:1.5}
 .rfbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+/* --- 학생 리포트 --- */
+.repview{max-height:none}
+#adminReport .loggrid{grid-template-columns:1fr}
+#repList{display:flex;flex-wrap:wrap;gap:6px;max-height:none;border:0;background:none;overflow:visible}
+#repList .logitem{width:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface);gap:10px}
+#repList .logitem[aria-pressed="true"]{border-color:var(--jacket)}
+.rep h3{font-size:17px;margin:16px 0 6px}
+.rep h3 small{font-family:"IBM Plex Sans KR",sans-serif;font-weight:400;margin-left:6px}
+.repchart{width:100%;max-width:520px;height:auto;display:block}
+.repev{width:100%;border-collapse:collapse;font-size:13.5px}
+.repev th,.repev td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.repev th{font-weight:500;color:var(--muted);font-size:12px}
+.repev td:first-child{white-space:nowrap;font-weight:500}
+.lv{display:inline-block;border-radius:10px;padding:1px 9px;font-size:12px;font-weight:700;white-space:nowrap}
+.lv-hi{background:color-mix(in srgb,var(--ok) 20%,transparent);color:var(--ok)}
+.lv-mid{background:color-mix(in srgb,var(--para) 22%,transparent);color:var(--para)}
+.lv-lo{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.refbox{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-bottom:8px;background:var(--surface);font-size:14px}
+.refbox ol{margin:4px 0 0;padding-left:20px} .refbox li{margin:4px 0} .refbox small{color:var(--muted)}
+.asks{margin:0;padding-left:20px;font-size:14px}
+.reptl{list-style:none;margin:0;padding:0;font-size:13.5px;max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.reptl li{display:grid;grid-template-columns:62px 96px 1fr;gap:6px;padding:5px 10px;border-bottom:1px dashed var(--line)}
+.reptl li.lesson{display:block;font-weight:700;color:var(--muted);background:var(--sunk);border-bottom:1px solid var(--line)}
+.reptl time{color:var(--muted);font-variant-numeric:tabular-nums}
+.reptl .ty{font-weight:500;white-space:nowrap}
+.reptl li.t-exam{background:color-mix(in srgb,var(--dia) 7%,transparent)}
+.reptl li.t-judge,.reptl li.t-memo,.reptl li.t-reflect{background:color-mix(in srgb,var(--para) 8%,transparent)}
+.reparea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font:inherit;color:inherit;resize:vertical;line-height:1.6}
+.reparea.draft{min-height:190px}
+@media (max-width:760px){.reptl li{grid-template-columns:52px 1fr}.reptl li span:last-child{grid-column:1/-1}}
 .duobar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
 .duobar select{padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;max-width:100%}
 .duo{display:flex;flex-direction:column;gap:6px;margin:6px 0}
@@ -583,6 +613,15 @@ body{word-break:keep-all;overflow-wrap:anywhere}
     </div>
     <div class="logfilter"><label class="pcount">반 <select id="logBan"></select></label><span id="logInfo" class="pcount">‘불러오기’를 누르면 최신 대화를 가져와요.</span></div>
     <div class="loggrid"><div class="loglist" id="logList"></div><div class="logview" id="logView"><div class="empty">학생을 선택하세요.</div></div></div>
+  </section>
+
+  <section class="logs" data-pane="rec" id="adminReport" hidden aria-label="학생 리포트와 세특 초안 (관리자)">
+    <div class="examhead">
+      <div><h2 class="display">📈 학생 리포트 · 세특 초안</h2><p>관리자에게만 보여요. 학생의 학습 과정을 시간순으로 보고, 관찰 근거로 세특 초안을 만들 수 있어요. 초안은 반드시 직접 확인하고 고쳐서 쓰세요.</p></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" id="repLoad">불러오기</button></div>
+    </div>
+    <div class="logfilter"><label class="pcount">반 <select id="repBan"></select></label><span id="repInfo" class="pcount">‘불러오기’를 누르면 과정 기록을 가져와요.</span></div>
+    <div class="loggrid"><div class="loglist" id="repList"></div><div class="logview repview" id="repView"><div class="empty">학생을 선택하세요.</div></div></div>
   </section>
 
   <section class="chat" data-pane="rec" aria-label="금쪽이와 대화하기">
@@ -967,9 +1006,9 @@ function setupAdmin(){
     isAdmin=adminOk(u); showBtn();
     btn.textContent = isAdmin ? "관리자 로그아웃" : "🔐 관리자";
     $("adminBar").hidden=!isAdmin;
-    $("adminLogs").hidden=!isAdmin;
-    if(isAdmin){ $("evCsv").onclick=downloadEvents; $("logLoad").onclick=loadLogs; $("logCsv").onclick=downloadLogs; if(!logData.length) loadLogs(); }
-    else { logData=[]; logSel=null; }
+    $("adminLogs").hidden=!isAdmin; $("adminReport").hidden=!isAdmin;
+    if(isAdmin){ $("repLoad").onclick=loadReport; $("evCsv").onclick=downloadEvents; $("logLoad").onclick=loadLogs; $("logCsv").onclick=downloadLogs; if(!logData.length) loadLogs(); }
+    else { logData=[]; logSel=null; repData=null; repSel=null; }
     $("adminBar").textContent = isAdmin ? `관리자 모드 (${u.email}) — 순위표의 🗑을 두 번 누르면 그 박사님의 기록과 대화 로그가 삭제돼요.` : "";
     renderBoards();
   });
@@ -1018,6 +1057,195 @@ function renderLogs(){
     cur.msgs.map(m=>`<div class="msg ${m.who==="me"?"me":"kid"}"><time>${m.who==="me"?"박사님":"금쪽이"} · ${fmtT(m.at)}</time>${escH(m.text||"")}</div>`).join("");
   $("logView").scrollTop=0;
 }
+/* ---------- 관리자: 학생 리포트 · 세특 초안 ----------
+   과정 기록(gumjjogi_v2_events)·학생 기록·대화 로그를 '읽기만' 해서 학생별로 정리한다.
+   세특 초안은 관찰 사실만 Gemini에 보내 만들고(이름·학번 제외), 교사가 고쳐서 확정한다. */
+let repData=null, repSel=null, repBanSel="전체";
+const QREL=[[0,3,4],[4],[3,5],[0,4],[4,2,1],[0,1],[6],[1],[5],[0,1],[0],[5]];   // 문항별 관련 시료 (철0 니켈1 종이2 알루미늄3 구리4 물5 납6)
+const BOUND=[["철",[[0,3],[0,4]]],["니켈",[[1,2],[1,3]]],["납",[[6,0],[6,2]]]];   // 경계 온도 위아래 장면
+const LVC={상:"lv-hi",중:"lv-mid",하:"lv-lo"};
+function evDesc(e){ const d=e.data||{}; switch(e.type){
+  case "teach": return `${d.scene} 장면을 가르침 → ${KN[d.k]||d.k} (노트 ${d.n})`;
+  case "unteach": return `${d.scene} 장면을 지움 (노트 ${d.n})`;
+  case "reset": return `노트 ${d.n}장면을 모두 지우고 처음부터 다시`;
+  case "exam": return `${d.try}회차 시험 ${d.score}/12 · 확실 ${d.sure} · 추측 ${(d.infer||[]).length} · 찍기 ${(d.guess||[]).length} · 틀림 ${(d.wrong||[]).join(", ")||"없음"}`;
+  case "peer": return `${d.friend}의 금쪽이와 비교`;
+  case "memo": return `비교 메모: ${d.text}`;
+  case "duo": return `${d.friend}와 ${d.q}번 문제로 두 금쪽이 대화 (내 답 ${d.mine||"모름"}, 친구 답 ${d.theirs||"모름"})`;
+  case "judge": return `${d.q}번 ‘누구 말이 맞을까’: ${d.pick} → ${d.correct?"정확":"틀림"}${d.correct?"":` (정답: ${d.answer})`}`;
+  case "reflect": return `${d.lesson}차시 성찰 제출`;
+  default: return JSON.stringify(d); } }
+const EVI={teach:"📘",unteach:"🧽",reset:"🔄",exam:"📝",peer:"🤝",memo:"✏️",duo:"🗣️",judge:"⚖️",reflect:"💭"};
+const EVN={teach:"가르치기",unteach:"장면 지우기",reset:"처음부터",exam:"시험",peer:"친구 비교",memo:"비교 메모",duo:"두 금쪽이",judge:"판단",reflect:"성찰"};
+async function loadReport(){
+  if(!fb||!isAdmin) return;
+  $("repInfo").textContent="불러오는 중…";
+  try{
+    const [ev,rc,ch]=await Promise.all([fb.collection(EV_COL).get(),fb.collection(FB_COL).get(),fb.collection(FB_COL+"_chat").get()]);
+    const by=new Map();
+    const get=(id,name)=>{ if(!by.has(id)) by.set(id,{id,name,evs:[],rec:null,chats:[]}); const p=by.get(id); if(name&&!p.name) p.name=name; return p; };
+    ev.docs.forEach(d=>{ const e=d.data(); if(e&&e.id) get(e.id,e.name).evs.push(e); });
+    rc.docs.forEach(d=>{ const r=d.data(); if(r&&r.id) get(r.id,r.name).rec=r; });
+    ch.docs.forEach(d=>{ const m=d.data(); if(m&&m.id&&by.has(m.id)) by.get(m.id).chats.push(m); });
+    by.forEach(p=>{ p.evs.sort((a,b)=>(a.at||0)-(b.at||0)); p.chats.sort((a,b)=>(a.at||0)-(b.at||0)); });
+    repData=by; renderReport();
+  }catch(e){ console.warn(e); $("repInfo").textContent="불러오지 못했어요 ("+((e&&e.code)||e)+"). 보안 규칙의 관리자 설정을 확인하세요."; }
+}
+function analyze(p){
+  const E=t=>p.evs.filter(e=>e.type===t);
+  const exams=E("exam"), teaches=E("teach"), judges=E("judge"), memos=E("memo"), duos=E("duo"), refl=E("reflect");
+  const days=[...new Set(p.evs.map(e=>new Date(e.at).toDateString()))];
+  /* 오답 → 다음 시험 전 관련 장면을 가르쳤나 → 해결됐나 */
+  let rounds=0, targeted=0, fixed=[], fixNotes=[];
+  for(let i=0;i<exams.length-1;i++){
+    const a=exams[i], b=exams[i+1], W=(a.data.wrong||[]);
+    if(!W.length) continue; rounds++;
+    const between=p.evs.filter(e=>e.type==="teach"&&e.at>a.at&&e.at<b.at);
+    const hit=between.filter(t=>W.some(q=>QREL[q-1]&&QREL[q-1].includes(t.data.m)));
+    if(hit.length) targeted++;
+    const nowRight=W.filter(q=>!(b.data.wrong||[]).includes(q)&&!(b.data.guess||[]).includes(q));
+    nowRight.forEach(q=>{ const why=between.filter(t=>QREL[q-1]&&QREL[q-1].includes(t.data.m)).map(t=>t.data.scene); if(why.length){ fixed.push(q); fixNotes.push(`${q}번 ← ${why.join(", ")}`); } });
+  }
+  const last=exams[exams.length-1], first=exams[0];
+  const notes=(p.rec&&p.rec.notes)||[];
+  const has=(m,e)=>notes.some(n=>n.m===m&&n.e===e);
+  const bounds=BOUND.filter(([,ps])=>ps.every(([m,e])=>has(m,e))).map(([n])=>n);
+  const fullClean=exams.find(x=>x.data.score===12&&!(x.data.guess||[]).length);
+  const minFull=exams.filter(x=>x.data.score===12&&!(x.data.guess||[]).length).reduce((m,x)=>Math.min(m,x.data.n),Infinity);
+  const jOk=judges.filter(j=>j.data.correct).length;
+  const peers=[...new Set(E("peer").map(e=>e.data.friend))];
+  const lastRefl={}; refl.forEach(r=>lastRefl[r.data.lesson]=r.data);
+  const mine=p.chats.filter(m=>m.who==="me"&&!/^\[/.test(m.text||""));
+  const angry=mine.filter(m=>isAngryMsg(m.text||"")).length;
+  const asks=mine.filter(m=>/\?|왜|어떻게|무엇/.test(m.text||"")).map(m=>m.text);
+  const rtxt=Object.values(lastRefl).map(r=>[r.a1,r.a2,r.a3].join(" ")).join(" ");
+  const kw=["퀴리","경계","초전도","임계","온도","추측","찍","근거","데이터","노트"].filter(k=>rtxt.includes(k));
+  /* 참고 수준 (교사 판단 보조) */
+  const lvData = fullClean&&minFull<=13 ? "상" : (last&&last.data.score>=10)||fixed.length>=2 ? "중" : "하";
+  const lvPeer = judges.length>=2&&jOk===judges.length&&memos.length>=1&&/근거|노트|데이터|장면/.test(rtxt) ? "상" : (memos.length||jOk) ? "중" : "하";
+  const lvBound = bounds.length===3&&/퀴리|경계|임계|초전도/.test(rtxt) ? "상" : bounds.length>=1||/퀴리|경계|온도/.test(rtxt) ? "중" : "하";
+  return {exams,teaches,judges,memos,duos,refl,days,rounds,targeted,fixed,fixNotes,last,first,notes,bounds,fullClean,minFull,jOk,peers,lastRefl,mine,angry,asks,kw,lvData,lvPeer,lvBound,unteach:E("unteach").length,resets:E("reset").length};
+}
+function scoreChart(exams){
+  if(!exams.length) return `<div class="empty">시험 기록이 없어요.</div>`;
+  const W=340,H=150,L=28,R=10,T=20,B=26, n=exams.length, x=i=>L+(n===1?(W-L-R)/2:i*(W-L-R)/(n-1)), y=v=>T+(H-T-B)*(1-v/12);
+  let g=`<svg viewBox="0 0 ${W} ${H}" class="repchart" role="img" aria-label="시험 회차별 점수와 찍기 문항 수">`;
+  [0,6,12].forEach(v=>{ g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-dasharray="${v?"3 3":""}"/><text x="${L-6}" y="${y(v)+4}" font-size="10" text-anchor="end" fill="var(--muted)">${v}</text>`; });
+  exams.forEach((e,i)=>{ const gq=(e.data.guess||[]).length; if(gq) g+=`<rect x="${x(i)-6}" y="${y(gq)}" width="12" height="${y(0)-y(gq)}" rx="2" fill="var(--para)" opacity=".55"><title>찍기 ${gq}문항</title></rect>`; });
+  g+=`<polyline points="${exams.map((e,i)=>`${x(i)},${y(e.data.score)}`).join(" ")}" fill="none" stroke="var(--dia)" stroke-width="2.5"/>`;
+  exams.forEach((e,i)=>{ g+=`<circle cx="${x(i)}" cy="${y(e.data.score)}" r="4" fill="var(--dia)"><title>${i+1}회: ${e.data.score}/12</title></circle><text x="${x(i)}" y="${y(e.data.score)-8}" font-size="10" text-anchor="middle" fill="var(--ink)">${e.data.score}</text><text x="${x(i)}" y="${H-8}" font-size="10" text-anchor="middle" fill="var(--muted)">${i+1}회</text>`; });
+  return g+`</svg><div class="peerlegend"><span><i style="background:var(--dia)"></i>점수</span><span><i style="background:var(--para);opacity:.55"></i>찍어서 맞힌 문항 수</span></div>`;
+}
+function renderReport(){
+  if(!repData) return;
+  const people=[...repData.values()].filter(p=>p.evs.length);
+  const bans=[...new Set(people.map(p=>banOfId(p.id)))].sort((a,b)=>a==="교사"?1:b==="교사"?-1:a.localeCompare(b,undefined,{numeric:true}));
+  if(repBanSel!=="전체"&&!bans.includes(repBanSel)) repBanSel="전체";
+  $("repBan").innerHTML=["전체",...bans].map(b=>`<option value="${b}" ${b===repBanSel?"selected":""}>${b==="전체"?"전체":b==="교사"?"교사":b+"반"}</option>`).join("");
+  $("repBan").onchange=()=>{ repBanSel=$("repBan").value; repSel=null; renderReport(); };
+  const list=people.filter(p=>repBanSel==="전체"||banOfId(p.id)===repBanSel).sort((a,b)=>String(a.id).localeCompare(String(b.id),undefined,{numeric:true}));
+  $("repInfo").textContent=`학생 ${list.length}명 · 과정 기록 ${list.reduce((s,p)=>s+p.evs.length,0)}건`;
+  $("repList").innerHTML=list.length?list.map(p=>{ const a=analyze(p);
+    return `<button class="logitem" data-id="${escH(p.id)}" aria-pressed="${p.id===repSel}"><span>${escH(dispOfLog(p))}</span><small>${a.last?a.last.data.score+"/12":"시험 없음"} · 성찰 ${Object.keys(a.lastRefl).length}</small></button>`; }).join(""):`<div class="empty">과정 기록이 없어요.</div>`;
+  $("repList").querySelectorAll(".logitem").forEach(b=>b.onclick=()=>{ repSel=b.dataset.id; renderReport(); });
+  const p=repData.get(repSel);
+  if(!p||!list.includes(p)){ $("repView").innerHTML=`<div class="empty">학생을 선택하세요.</div>`; return; }
+  const a=analyze(p);
+  const dayIdx=t=>a.days.indexOf(new Date(t).toDateString())+1;
+  const hm=t=>new Date(t).toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
+  let tl="", cur=0;
+  p.evs.forEach(e=>{ const d=dayIdx(e.at); if(d!==cur){ cur=d; tl+=`<li class="lesson">${d}차시 · ${new Date(e.at).toLocaleDateString("ko-KR",{month:"numeric",day:"numeric",weekday:"short"})}</li>`; }
+    tl+=`<li class="t-${e.type}"><time>${hm(e.at)}</time><span class="ty">${EVI[e.type]||""} ${EVN[e.type]||e.type}</span><span>${escH(evDesc(e))}</span></li>`; });
+  const R=a.lastRefl, rq=["틀린 원인과 해결","친구와 비교해 알게 된 점","AI를 믿으면 안 되는 때"];
+  const reflHtml=Object.keys(R).length?Object.entries(R).map(([l,r])=>`<div class="refbox"><b>${l}차시</b><ol>${[r.a1,r.a2,r.a3].map((t,i)=>`<li><small>${rq[i]}</small><br>${escH(t)}</li>`).join("")}</ol></div>`).join(""):`<div class="empty">제출한 성찰이 없어요.</div>`;
+  const ev4=[
+    ["자성체의 종류와 활용","",`가르친 장면 ${a.teaches.length}개 중 상온 시료 ${a.notes.filter(n=>n.e===2).length}종${a.first?` · 첫 시험 ${a.first.data.score}/12`:""}. 개념 설명은 활동지·발표로 판단하세요.`],
+    ["퀴리 온도와 초전도",a.lvBound,`경계 장면 완비: ${a.bounds.join(", ")||"없음"}${a.kw.length?` · 성찰 핵심어: ${a.kw.join(", ")}`:""}`],
+    ["학습 데이터 설계와 디버깅",a.lvData,`${a.exams.length}회 시험, ${a.first?a.first.data.score:"-"} → ${a.last?a.last.data.score:"-"}점${a.fullClean?` · 찍기 없이 만점(최소 ${a.minFull}장면)`:""} · 오답 후 관련 장면 보완 ${a.targeted}/${a.rounds}회${a.fixNotes.length?` · 해결: ${a.fixNotes.join(" / ")}`:""}`],
+    ["데이터 비교와 AI 발화 판단",a.lvPeer,`비교한 친구 ${a.peers.length}명 · 메모 ${a.memos.length}건 · 두 금쪽이 대화 ${a.duos.length}회 · 판단 ${a.jOk}/${a.judges.length} 정확`]
+  ];
+  const memoKey="tnote:"+p.id, draftKey="draft:"+p.id;
+  $("repView").innerHTML=`<div class="rep">
+    <p class="lhead"><b>${escH(dispOfLog(p))}</b> · 참여 ${a.days.length}차시 · 노트 ${a.notes.length}장면 · 기록 ${p.evs.length}건${a.angry?` · 분노 표현 ${a.angry}회`:""}${a.resets||a.unteach?` · 지우기 ${a.resets+a.unteach}회`:""}</p>
+    <h3 class="display">📈 시험 점수 변화</h3>${scoreChart(a.exams)}
+    <h3 class="display">🧭 평가 요소별 근거 <small class="sm muted">수준은 기록에서 계산한 참고값이에요</small></h3>
+    <table class="repev"><thead><tr><th>평가 요소</th><th>참고</th><th>관찰 근거</th></tr></thead><tbody>${ev4.map(([n,l,t])=>`<tr><td>${n}</td><td>${l?`<span class="lv ${LVC[l]}">${l}</span>`:`<span class="sm muted">교사 판단</span>`}</td><td>${escH(t)}</td></tr>`).join("")}</tbody></table>
+    <h3 class="display">💭 성찰</h3>${reflHtml}
+    ${a.asks.length?`<h3 class="display">❓ 금쪽이에게 한 질문</h3><ul class="asks">${a.asks.slice(0,5).map(t=>`<li>${escH(t)}</li>`).join("")}</ul>`:""}
+    <h3 class="display">🗂️ 과정 타임라인</h3><ul class="reptl">${tl}</ul>
+    <h3 class="display">👀 교사 관찰 메모</h3>
+    <textarea id="repMemo" class="reparea" rows="3" placeholder="수업 중 직접 본 모습을 적어 두세요. 세특 초안에 함께 반영돼요. (이 기기에만 저장)">${escH(LS.get(memoKey,""))}</textarea>
+    <h3 class="display">📝 세특 초안</h3>
+    <div class="duobar"><button class="btn small" id="repDraftBtn">초안 만들기</button><span class="sm muted" id="repDraftInfo">관찰 기록만 사용하고 이름·학번은 보내지 않아요.</span></div>
+    <textarea id="repDraft" class="reparea draft" rows="9" placeholder="‘초안 만들기’를 누르면 여기에 초안이 나와요. 직접 고쳐서 쓰세요.">${escH(LS.get(draftKey,""))}</textarea>
+    <div class="rfbar"><span class="sm muted" id="repCount"></span><button class="btn ghost small" id="repCopy">복사</button></div>
+  </div>`;
+  const cnt=()=>{ const t=$("repDraft").value; $("repCount").textContent=`${t.length}자 (공백 포함) · ${new Blob([t]).size}바이트`; };
+  $("repMemo").oninput=()=>LS.set(memoKey,$("repMemo").value);
+  $("repDraft").oninput=()=>{ LS.set(draftKey,$("repDraft").value); cnt(); };
+  $("repCopy").onclick=async()=>{ try{ await navigator.clipboard.writeText($("repDraft").value); toast("초안을 복사했어요."); }catch(e){ $("repDraft").select(); document.execCommand("copy"); toast("초안을 복사했어요."); } };
+  $("repDraftBtn").onclick=()=>makeDraft(p,a);
+  cnt();
+}
+function draftFacts(p,a){
+  const F=[];
+  if(a.first){ const fs0=a.first.data.scenes||[]; F.push(`첫 시험 전에 가르친 장면 ${fs0.length}개(${fs0.join(", ")}). 첫 시험에서 ${(a.first.data.wrong||[]).length}개 문항을 틀리고 ${(a.first.data.guess||[]).length}개 문항은 처음 보는 시료라 찍어서 맞힘(틀린 문항: ${(a.first.data.wrong||[]).map(q=>QS[q-1].tag+" "+q+"번").join(", ")||"없음"}).`); }
+  if(a.fixNotes.length) F.push(`오답 뒤 관련 장면을 골라 가르쳐 해결함: ${a.fixNotes.join("; ")}.`);
+  if(a.rounds) F.push(`오답이 있던 ${a.rounds}번 중 ${a.targeted}번은 다음 시험 전에 틀린 문항과 관련된 시료를 보완함.`);
+  if(a.fullClean) F.push(`찍기 없이 모든 문항을 맞힘. 가장 적게는 ${a.minFull}개 장면으로 가능했음.`); else if(a.last) F.push(`마지막 시험에서도 틀린 문항이 남음(${(a.last.data.wrong||[]).join(", ")||"없음"}번), 찍어서 맞힌 문항 ${(a.last.data.guess||[]).length}개.`);
+  if(a.bounds.length) F.push(`경계 온도 위아래 장면을 모두 갖춘 시료: ${a.bounds.join(", ")}.`);
+  if(a.unteach) F.push(`필요 없는 장면을 ${a.unteach}개 지워 학습 데이터를 줄여 봄.`);
+  if(a.resets) F.push(`노트를 처음부터 다시 구성한 적이 있음.`);
+  if(a.peers.length) F.push(`동료 ${a.peers.length}명의 학습 데이터와 비교함.`);
+  a.memos.forEach(m=>F.push(`비교 메모: “${m.data.text}”`));
+  a.judges.forEach(j=>F.push(`두 AI의 대화를 보고 ${j.data.q}번에서 누구 말이 맞는지 판단함: ${j.data.correct?"근거를 확인해 정확히 판단":"판단이 틀림"}.`));
+  Object.entries(a.lastRefl).forEach(([l,r])=>F.push(`${l}차시 성찰 — 틀린 원인과 해결: “${r.a1}” / 비교로 알게 된 점: “${r.a2}” / AI를 믿으면 안 되는 때: “${r.a3}”`));
+  a.asks.slice(0,3).forEach(t=>F.push(`AI에게 한 질문: “${t}”`));
+  if(a.angry) F.push(`활동 중 답답함을 표현한 적이 있음(${a.angry}회).`);
+  const tm=LS.get("tnote:"+p.id,"").trim(); if(tm) F.push(`교사 관찰: ${tm}`);
+  return F;
+}
+function draftPrompt(F){
+  return `너는 고등학교 물리 교사가 학교생활기록부 ‘교과세부능력 및 특기사항(세특)’을 쓰도록 돕는다. 아래 [관찰 기록]에 있는 사실만 사용해 한 학생의 세특 초안을 쓴다.
+
+[활동 소개] 학생이 가상 실험실에서 시료와 온도를 바꾸며 자성(강자성·상자성·반자성·초전도)을 관찰하고, 관찰한 장면만 학습 데이터로 삼아 판단하는 AI에게 가르친 뒤 시험 결과를 분석해 데이터를 보완하는 수업. 동료의 학습 데이터와 비교하고 두 AI의 대화를 보며 누구 말이 맞는지 판단하는 활동이 있음.
+
+[관찰 기록]
+${F.map(f=>"- "+f).join("\n")}
+
+[작성 규칙]
+1. 한 문단, 공백 포함 350~550자.
+2. 문장은 ‘~함.’, ‘~임.’, ‘~보임.’, ‘~설명함.’ 같은 명사형으로 끝낸다.
+3. 학생 이름·학번, 점수(몇 점), 순위, ‘몇 번 문항’ 같은 번호, 앱·서비스 이름(금쪽이, 제미나이, Gemini, Firebase 등)은 쓰지 않는다. 활동은 ‘관찰한 장면만 학습하는 AI를 가르치는 활동’처럼 일반 표현으로 쓴다.
+4. 기록에 없는 능력·태도·성과를 지어내지 않는다. 기록이 적으면 짧게 쓴다.
+5. ‘구체적 행동 → 그 행동이 보여 주는 이해나 역량’ 순서로 쓴다. 예: 어떤 오답의 원인을 어떤 데이터로 보완했는지 → 학습 데이터 범위와 결정 경계, 퀴리 온도·초전도 임계 온도에 대한 이해.
+6. 성찰 내용은 학생의 생각을 드러내는 근거로 쓰되 그대로 옮겨 적지 않는다.
+7. ‘탁월한’, ‘매우 뛰어난’ 같은 과장된 꾸밈말을 쓰지 않는다. 부족한 점은 성장 가능성이 드러나게 사실대로 쓴다.
+8. 세특 문단만 출력한다. 제목, 따옴표, 설명을 붙이지 않는다.`;
+}
+function draftFallback(a){
+  const S=[];
+  S.push("관찰한 장면만 학습하는 AI에게 물질의 자성을 가르치는 활동에 참여함.");
+  if(a.fixNotes.length) S.push(`AI가 틀린 문항을 분석해 원인이 된 온도 조건의 장면(${[...new Set(a.fixNotes.map(x=>x.split("← ")[1]))].join(", ")})을 보완하여 오답을 해결함.`);
+  if(a.fullClean) S.push("추측이나 우연에 기대지 않고 필요한 장면만으로 AI가 모든 문제를 해결하게 하여, 학습 데이터의 범위와 결정 경계의 관계를 이해하고 있음을 보임.");
+  if(a.bounds.length) S.push(`${a.bounds.join("·")}의 경계 온도 위아래 장면을 함께 제시해야 하는 이유를 자성 변화와 연결함.`);
+  if(a.memos.length) S.push("동료의 학습 데이터와 비교하며 두 AI의 판단이 갈리는 지점을 찾아 설명함.");
+  if(a.judges.length&&a.jOk===a.judges.length) S.push("두 AI의 대화에서 각 발화의 근거가 학습 데이터에 있는지 확인해 신뢰할 수 있는 판단을 가려냄.");
+  if(!a.fullClean&&a.last) S.push("일부 조건에서는 데이터가 부족해 오답이 남았으며, 처음 보는 조건에서 AI가 추측한다는 점을 인식하는 계기가 됨.");
+  return S.join(" ");
+}
+async function makeDraft(p,a){
+  const btn=$("repDraftBtn"), info=$("repDraftInfo"); btn.disabled=true; info.textContent="초안을 만드는 중…";
+  const F=draftFacts(p,a); let text="";
+  if(sampleFn){
+    try{ const r=await sampleFn(draftPrompt(F),{onText:({text:t})=>{ $("repDraft").value=t; }}); text=(r.text||"").trim(); info.textContent="AI가 만든 초안이에요. 사실과 다른 곳이 없는지 확인하고 고쳐 쓰세요."; }
+    catch(e){ console.warn("세특 초안 AI 실패",e); info.textContent="AI 연결이 안 돼서 기록으로 만든 기본 초안을 보여 줘요."; }
+  } else info.textContent="AI가 연결되지 않아 기록으로 만든 기본 초안을 보여 줘요.";
+  if(!text) text=draftFallback(a);
+  $("repDraft").value=text; LS.set("draft:"+p.id,text); $("repDraft").dispatchEvent(new Event("input"));
+  btn.disabled=false;
+}
+
 /* 과정 기록 내려받기 (관리자) — 읽기만 함 */
 async function downloadEvents(){
   if(!fb||!isAdmin) return;
