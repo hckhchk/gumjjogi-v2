@@ -230,6 +230,17 @@ table.grid{border-collapse:separate;border-spacing:4px;width:100%;min-width:640p
 .rs-ok{color:var(--ok);font-weight:700} .rs-bad{color:var(--bad);font-weight:700} .rs-guess{color:var(--para);font-weight:700}
 .talk{margin:16px 0 0;padding:12px 14px;border-radius:8px;border:1px dashed var(--para);background:color-mix(in srgb,var(--para) 8%,var(--surface))}
 .talk ol{margin:6px 0 0;padding-left:20px} .talk li{margin:4px 0}
+.duobar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.duobar select{padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;max-width:100%}
+.duo{display:flex;flex-direction:column;gap:6px;margin:6px 0}
+.duo .ln{max-width:82%;padding:8px 12px;border-radius:12px;font-size:14.5px;line-height:1.5;background:var(--bg);border:1px solid var(--line)}
+.duo .ln small{display:block;font-size:11px;color:var(--muted)}
+.duo .ln.a{align-self:flex-start;border-left:4px solid var(--jacket)}
+.duo .ln.b{align-self:flex-end;border-right:4px solid var(--para)}
+.duo .ln.wait{align-self:center;color:var(--muted);border-style:dashed}
+.judge{margin-top:8px;padding:10px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--line)}
+.judge .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.judge.done{border-color:var(--ok)}
 .memo{display:flex;gap:8px;margin-top:10px}
 .memo input{flex:1;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font:inherit;color:inherit}
 @media (max-width:720px){.peersum{grid-template-columns:1fr}}
@@ -1266,12 +1277,13 @@ function renderExam(){
 /* var: renderBoards/renderNotes가 이 코드보다 먼저 불릴 수 있어서 TDZ를 피함 */
 var peerSel=null, peerReady=false, peerOpts="";
 /* 주어진 노트로 금쪽이가 12문제를 풀면 어떻게 될지 계산 (찍어서 맞힌 건 정답으로 치지 않음) */
-function judgeWith(ns){
-  if(!ns.length) return QS.map(()=>({ok:false, guess:false, unk:true}));  /* 아무것도 안 배웠으면 전부 '모름' */
+const ansOf=q=>q.note?q.truth:q.solve((m,T)=>truth(m,T));
+function rawWith(ns){
+  if(!ns.length) return QS.map(q=>({pick:-1, ans:ansOf(q), why:"아무것도 안 배워서 모르겠어요!", guess:false}));  /* 아무것도 안 배웠으면 전부 '모름' */
   const save=notes; notes=ns;
-  try{ return QS.map(runQ).map(r=>({ok:r.pick===r.ans&&!r.guess, guess:!!r.guess, unk:r.pick<0})); }
-  finally{ notes=save; }
+  try{ return QS.map(runQ); } finally{ notes=save; }
 }
+const toJ=r=>({ok:r.pick===r.ans&&!r.guess, guess:!!r.guess, unk:r.pick<0});
 const RS=r=>r.guess ? '<span class="rs-guess" title="처음 보는 시료라 찍었어요">🎲 찍기</span>' : r.ok ? '<span class="rs-ok">✓</span>' : r.unk ? '<span class="rs-bad">? 모름</span>' : '<span class="rs-bad">✗</span>';
 function renderPeer(){
   if(!peerReady) return;
@@ -1291,7 +1303,7 @@ function renderPeer(){
   const fn=fr.notes.filter(n=>n&&MATS[n.m]&&ENVS[n.e]&&KN[n.k]);
   const key=n=>n.m+"-"+n.e, mine=new Set(notes.map(key)), theirs=new Set(fn.map(key));
   const onlyMe=notes.filter(n=>!theirs.has(key(n))), onlyFr=fn.filter(n=>!mine.has(key(n))), both=notes.filter(n=>theirs.has(key(n)));
-  const A=judgeWith(notes), B=judgeWith(fn);
+  const RA=rawWith(notes), RB=rawWith(fn), A=RA.map(toJ), B=RB.map(toJ);
   const sa=A.filter(r=>r.ok).length, sb=B.filter(r=>r.ok).length, ga=A.filter(r=>r.guess).length, gb=B.filter(r=>r.guess).length;
   const fname=escH(String(fr.name).replace(/^\S+\s/,""));
   const sceneTxt=list=>list.length?list.map(n=>`${MATS[n.m].name} ${ENVS[n.e].T} K`).join(", "):"없음";
@@ -1328,6 +1340,8 @@ function renderPeer(){
     <p class="sm" style="margin:8px 0 0"><b>친구만 가르친 장면:</b> ${escH(sceneTxt(onlyFr))}</p>
     <h3 class="display">📝 문제별 비교</h3>
     <div class="scenegrid"><table class="qcmp"><thead><tr><th>#</th><th>문제</th><th class="r">내 금쪽이</th><th class="r">친구 금쪽이</th></tr></thead><tbody>${qrows}</tbody></table></div>
+    <h3 class="display">🗣️ 두 금쪽이 대화시키기</h3>
+    ${duoSec(fr,RA,RB)}
     <div class="talk"><b class="display" style="font-size:18px">💬 친구와 이야기해 보세요</b><ol>${talk.map(t=>`<li>${t}</li>`).join("")}</ol>
       <div class="memo"><input id="peerMemo" maxlength="200" placeholder="이야기하고 알게 된 점을 한 줄로 남겨 보세요" aria-label="친구와 이야기하고 알게 된 점"><button class="btn small" id="peerMemoBtn">남기기</button></div></div>`;
   const send=()=>{ const t=$("peerMemo").value.trim(); if(!t) return; if(!splitWho(me)){ toast("학번과 이름으로 들어와야 남길 수 있어요."); return; }
@@ -1335,8 +1349,115 @@ function renderPeer(){
     kid("happy",`${fname} 친구랑 이야기했군요! 두 노트를 비교하니까 제가 뭘 더 배워야 할지 알 것 같아요.`); };
   if(keep){ $("peerMemo").value=keep.v; if(keep.f) $("peerMemo").focus(); }
   $("peerMemoBtn").onclick=send;
+  bindDuo(fr,fn,RA,RB);
   $("peerMemo").addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.isComposing) send(); });
 }
+/* ---------- 두 금쪽이 대화시키기 ---------- */
+/* 각 금쪽이는 자기 노트만 안다. Gemini 1회 호출로 6~8줄 대화를 만들고, 실패하면 노트로 짠 기본 대화를 보여 준다. */
+var peerTopic=null, peerTopicFor=null, duoCur=null, pt={key:null};
+const NUMS="①②③④⑤";
+const plainQ=q=>q.q.replace(/<[^>]+>/g," ").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/\s+/g," ").trim();
+function duoSec(fr,RA,RB){
+  const diffs=QS.map((q,i)=>RA[i].pick!==RB[i].pick?i:-1).filter(i=>i>=0);
+  if(peerTopicFor!==fr.name){ peerTopicFor=fr.name; peerTopic=diffs.length?diffs[0]:0; }
+  const order=[...diffs,...QS.map((_,i)=>i).filter(i=>!diffs.includes(i))];
+  const key=fr.name+"|"+peerTopic, loading=pt.key===key&&pt.status==="loading";
+  return `<p class="sm muted" style="margin:0 0 8px">두 금쪽이가 <b>자기 노트만</b> 가지고 문제 하나를 두고 이야기해요. 대화를 보고 누구 말이 맞는지 판단해 보세요. AI가 만든 대화라서 금쪽이가 틀린 말을 할 수도 있어요!</p>
+    <div class="duobar"><select id="duoTopic" aria-label="대화 주제 문제">${order.map(i=>`<option value="${i}" ${i===peerTopic?"selected":""}>${i+1}번 ${QS[i].tag}${diffs.includes(i)?" · 두 금쪽이 답이 달라요":""}</option>`).join("")}</select><button class="btn small" id="duoGo" ${loading?"disabled":""}>대화 시작</button></div>
+    <div id="duoBox"></div>`;
+}
+function bindDuo(fr,fn,RA,RB){
+  duoCur={fr,fn,RA,RB,fname:String(fr.name).replace(/^\S+\s/,""),key:fr.name+"|"+peerTopic};
+  $("duoTopic").onchange=e=>{ peerTopic=+e.target.value; duoCur.key=fr.name+"|"+peerTopic; const g=$("duoGo"); if(g) g.disabled=pt.key===duoCur.key&&pt.status==="loading"; paintDuo(); };
+  $("duoGo").onclick=startDuo;
+  paintDuo();
+}
+function parseDuo(text){
+  const out=[];
+  for(const line of String(text).split(/\n+/)){
+    const m=/^\s*[*\-•]*\s*\**\s*(A|B)\s*\**\s*[:：]\s*(.+)$/.exec(line);
+    if(m){ const t=m[2].replace(/^["“”'‘’]+|["“”'‘’]+$/g,"").replace(/\*\*/g,"").trim(); if(t) out.push({w:m[1],t}); }
+    if(out.length>=10) break;
+  }
+  return out;
+}
+function noteTxt(ns){ return ns.length ? ns.map(n=>`- ${MATS[n.m].name}, ${ENVS[n.e].T} K: ${KN[n.k]}`).join("\n") : "- (아무것도 없음)"; }
+function pickTxt(q,r){ return r.pick<0 ? "모르겠음" : `${NUMS[r.pick]} ${q.c[r.pick]}`; }
+function duoPrompt(qi,A,B,nsA,nsB,fname){
+  const q=QS[qi];
+  return `한성과학고 학생 캐릭터 두 명이 자성 문제 하나를 두고 나누는 짧은 대화를 써라. A는 ‘내 금쪽이’, B는 ‘${fname}의 금쪽이’다. 둘 다 박사님이 실험실에서 보여 준 장면만 배웠다.
+
+[문제] ${plainQ(q)}
+[선택지] ${q.c.map((c,i)=>`${NUMS[i]} ${c}`).join(" / ")}
+
+[A의 노트 — A가 아는 전부]
+${noteTxt(nsA)}
+
+[B의 노트 — B가 아는 전부]
+${noteTxt(nsB)}
+
+[A의 답] ${pickTxt(q,A)}${A.guess?" (처음 보는 시료라 찍음)":""} — A의 생각: ${A.why}
+[B의 답] ${pickTxt(q,B)}${B.guess?" (처음 보는 시료라 찍음)":""} — B의 생각: ${B.why}
+
+[규칙]
+1. A부터 시작해 A와 B가 번갈아 말하며 모두 6~8줄을 쓴다. 각 줄은 반드시 ‘A: ’ 또는 ‘B: ’로 시작한다. 제목, 설명, 따옴표, 괄호 속 행동 묘사는 쓰지 않는다.
+2. 한국어 해요체로, 한 줄에 1~2문장. 귀엽고 살짝 경쟁하는 고등학생 말투.
+3. 각자 자기 노트에 있는 장면만 근거로 말한다. 상대 노트의 장면은 상대가 말해 줘야만 안다. 노트에 없는 물리 지식(퀴리 온도 값, 원리, 정답)은 절대 아는 척하지 않는다.
+4. 위에 적힌 각자의 답으로 대화를 시작한다. 상대 장면을 듣고 흔들릴 수는 있지만, 누가 맞는지 확정하거나 정답을 말하지 않는다.
+5. 찍은 답이면 찍었다고 솔직하게 말한다.
+6. 마지막 줄은 둘이 ‘박사님께 어떤 장면을 보여 달라고 할지’ 정하는 말로 끝낸다.`;
+}
+function duoScript(qi,A,B,fname){
+  const q=QS[qi], same=A.pick===B.pick;
+  const L=[
+    {w:"A",t:`${qi+1}번은 ${pickTxt(q,A)}${A.pick<0?"":"라고 생각해요"}! ${A.why}`},
+    {w:"B",t:same?`저도 ${pickTxt(q,B)}예요. ${B.why}`:`어? 저는 ${pickTxt(q,B)}인데요? ${B.why}`},
+    {w:"A",t:same?"답은 같아도 이유는 다를 수 있어요. 우리 둘 다 그 장면을 진짜 본 걸까요?":"노트가 다르니까 답도 다르네요. 누구 노트에 문제랑 딱 맞는 장면이 있을까요?"},
+    {w:"B",t:(A.guess||B.guess)?"찍은 답은 믿으면 안 돼요! 그 시료를 직접 봐야 해요.":"노트 장면의 온도가 문제의 온도랑 같은지 확인해 봐요."},
+    {w:"A",t:"좋아요, 박사님께 그 시료랑 온도 장면을 보여 달라고 해요!"}
+  ];
+  return L;
+}
+function duoTruth(){ const aOk=pt.A.pick===pt.A.ans, bOk=pt.B.pick===pt.B.ans; return {aOk,bOk,key:aOk&&bOk?"both":aOk?"A":bOk?"B":"none"}; }
+const JL={A:"내 금쪽이",B:"친구 금쪽이",both:"둘 다 맞아요",none:"둘 다 틀려요"};
+function paintDuo(){
+  const box=$("duoBox"); if(!box||!duoCur) return;
+  if(pt.key!==duoCur.key){ box.innerHTML=""; return; }
+  const nm=w=>w==="A"?"내 금쪽이":`${duoCur.fname} 친구의 금쪽이`;
+  let h=`<div class="duo">${pt.lines.map(l=>`<div class="ln ${l.w==="A"?"a":"b"}"><small>${escH(nm(l.w))}</small>${escH(l.t)}</div>`).join("")}${pt.status==="loading"?`<div class="ln wait">두 금쪽이가 이야기하는 중… 🤔</div>`:""}</div>`;
+  if(pt.note) h+=`<p class="sm muted" style="margin:4px 0">${escH(pt.note)}</p>`;
+  if(pt.status==="done"){
+    const q=QS[pt.qi], T=duoTruth();
+    if(!pt.judged) h+=`<div class="judge"><b>누구 말이 맞을까요?</b><div class="row">${Object.entries(JL).map(([k,l])=>`<button class="btn ghost small" data-j="${k}">${l}</button>`).join("")}</div></div>`;
+    else h+=`<div class="judge done"><b>${pt.judged===T.key?"✓ 정확하게 판단했어요!":"✗ 다시 생각해 봐요"}</b> 정답은 <b>${NUMS[pt.A.ans]} ${escH(q.c[pt.A.ans])}</b>예요. 내 금쪽이 ${T.aOk?"맞음":"틀림"}${pt.A.guess?"(찍기)":""} · 친구 금쪽이 ${T.bOk?"맞음":"틀림"}${pt.B.guess?"(찍기)":""}<br><span class="sm">금쪽이가 자신 있게 말해도 노트에 그 장면이 없으면 틀릴 수 있어요. 어떤 장면을 보여 주면 확실해질까요?</span></div>`;
+  }
+  box.innerHTML=h;
+  box.querySelectorAll("[data-j]").forEach(b=>b.onclick=()=>{
+    pt.judged=b.dataset.j; const T=duoTruth();
+    fbLog("me",`[금쪽이 대화 판단 · ${duoCur.fr.name} · ${pt.qi+1}번] 내 판단: ${JL[pt.judged]} → ${pt.judged===T.key?"정확":"틀림"}`);
+    paintDuo();
+  });
+}
+async function startDuo(){
+  if(!duoCur||(pt.key===duoCur.key&&pt.status==="loading")) return;
+  const cur=duoCur, qi=peerTopic, A=cur.RA[qi], B=cur.RB[qi];
+  pt={key:cur.key,qi,A,B,lines:[],status:"loading",judged:null,note:""};
+  const g=$("duoGo"); if(g) g.disabled=true; paintDuo();
+  const mine=pt; let ok=false;
+  if(sampleFn){
+    try{
+      const {text}=await sampleFn(duoPrompt(qi,A,B,notes,cur.fn,cur.fname),{onText:({text})=>{ if(pt!==mine) return; mine.lines=parseDuo(text); paintDuo(); }});
+      const ls=parseDuo(text); if(ls.length>=2){ mine.lines=ls; ok=true; }
+    }catch(e){
+      console.warn("금쪽이 대화 AI 실패",e);
+      mine.note=/429|quota|RESOURCE|cooldown/i.test(String((e&&(e.message||e.code))||e)) ? "AI 사용량이 잠시 가득 차서 노트로 만든 기본 대화를 보여 줘요." : "AI에 연결하지 못해 노트로 만든 기본 대화를 보여 줘요.";
+    }
+  } else mine.note="AI가 연결되지 않아 노트로 만든 기본 대화를 보여 줘요.";
+  if(!ok){ mine.lines=duoScript(qi,A,B,cur.fname); if(!mine.note) mine.note="AI 대답 형식이 이상해서 노트로 만든 기본 대화를 보여 줘요."; }
+  mine.status="done";
+  if(pt===mine){ paintDuo(); const g2=$("duoGo"); if(g2&&duoCur&&duoCur.key===mine.key) g2.disabled=false; }
+}
+
 peerReady=true; renderPeer();
 
 /* ---------- 금쪽이와 대화하기 ---------- */
@@ -1495,7 +1616,7 @@ async function initGeminiChat(){
     let order=AI_MODELS.slice(); const saved=LS.get("aiModel",null); if(saved&&order.includes(saved)) order=[saved,...order.filter(x=>x!==saved)];
     sampleFn=async(prompt,opts={})=>{
       if(Date.now()<aiCool) throw {code:"cooldown"};
-      let lastErr=null;
+      let lastErr=null, fullN=0;
       for(const name of order){
         try{
           const model=aiMod.getGenerativeModel(ai,{model:name,generationConfig:{maxOutputTokens:1500,temperature:0.8}});
@@ -1507,10 +1628,11 @@ async function initGeminiChat(){
           return {text:acc};
         }catch(e){
           lastErr=e; const msg=String((e&&e.message)||e);
-          if(/429|quota|RESOURCE_EXHAUSTED/i.test(msg)){ aiCool=Date.now()+60000; throw e; }
+          if(/429|quota|RESOURCE_EXHAUSTED/i.test(msg)){ fullN++; continue; }  // 이 모델의 무료 한도가 찼으면 다음 모델로 (모델마다 한도가 따로)
           if(!/404|not found|NOT_FOUND|not supported|unsupported/i.test(msg)) throw e;  // 모델 이름 문제일 때만 다음 모델 시도
         }
       }
+      if(fullN) aiCool=Date.now()+60000;  // 모든 모델이 가득 찼으면 1분 쉬기
       throw lastErr;
     };
     $("aiMode").textContent="AI 금쪽이와 대화 중 (Gemini) — 연결이 안 되면 기본 대화로 자동 전환돼요";
