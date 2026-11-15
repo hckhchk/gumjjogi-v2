@@ -167,7 +167,6 @@ table.grid{border-collapse:separate;border-spacing:4px;width:100%;min-width:640p
 .board td.n{text-align:right;font-variant-numeric:tabular-nums}
 .logs{background:var(--surface);border:2px solid color-mix(in srgb,var(--bad) 45%,var(--line));border-radius:10px;padding:18px}
 .logs[hidden]{display:none}
-#tormFill.armed{background:var(--bad);color:#fff;border-color:var(--bad)}
 .logfilter{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 .logfilter select{margin-left:6px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
 .loggrid{display:grid;grid-template-columns:260px 1fr;gap:12px}
@@ -580,7 +579,7 @@ body{word-break:keep-all;overflow-wrap:anywhere}
   <section class="logs" data-pane="rec" id="adminLogs" hidden aria-label="대화 로그 (관리자)">
     <div class="examhead">
       <div><h2 class="display">💬 대화 로그</h2><p>관리자에게만 보이는 화면이에요. 학생을 고르면 금쪽이와의 대화를 시간 순서대로 볼 수 있어요.</p></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" id="logLoad">불러오기</button><button class="btn ghost small" id="logCsv" disabled>CSV 저장</button><button class="btn ghost small" id="evCsv" title="가르치기·시험·비교·판단·성찰 기록을 시간순으로 내려받아요">📊 과정 기록 CSV</button><button class="btn ghost small" id="tormFill" title="이전에 쌓인 기록과 대화 로그로 멘붕 지수를 채웁니다">😵‍💫 이전 기록으로 멘붕 지수 채우기</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" id="logLoad">불러오기</button><button class="btn ghost small" id="logCsv" disabled>CSV 저장</button><button class="btn ghost small" id="evCsv" title="가르치기·시험·비교·판단·성찰 기록을 시간순으로 내려받아요">📊 과정 기록 CSV</button></div>
     </div>
     <div class="logfilter"><label class="pcount">반 <select id="logBan"></select></label><span id="logInfo" class="pcount">‘불러오기’를 누르면 최신 대화를 가져와요.</span></div>
     <div class="loggrid"><div class="loglist" id="logList"></div><div class="logview" id="logView"><div class="empty">학생을 선택하세요.</div></div></div>
@@ -969,7 +968,7 @@ function setupAdmin(){
     btn.textContent = isAdmin ? "관리자 로그아웃" : "🔐 관리자";
     $("adminBar").hidden=!isAdmin;
     $("adminLogs").hidden=!isAdmin;
-    if(isAdmin){ $("evCsv").onclick=downloadEvents; $("logLoad").onclick=loadLogs; $("logCsv").onclick=downloadLogs; $("tormFill").onclick=fillTormFromHistory; if(!logData.length) loadLogs(); }
+    if(isAdmin){ $("evCsv").onclick=downloadEvents; $("logLoad").onclick=loadLogs; $("logCsv").onclick=downloadLogs; if(!logData.length) loadLogs(); }
     else { logData=[]; logSel=null; }
     $("adminBar").textContent = isAdmin ? `관리자 모드 (${u.email}) — 순위표의 🗑을 두 번 누르면 그 박사님의 기록과 대화 로그가 삭제돼요.` : "";
     renderBoards();
@@ -1018,28 +1017,6 @@ function renderLogs(){
   $("logView").innerHTML=`<p class="lhead"><b>${escH(cur.name)}</b> · 박사님 ${mine.length}회 · 금쪽이 ${cur.msgs.length-mine.length}회 · 분노 표현 ${ang}회 · ${fmtT(cur.msgs[0].at)} ~ ${fmtT(cur.msgs[cur.msgs.length-1].at)}</p>`+
     cur.msgs.map(m=>`<div class="msg ${m.who==="me"?"me":"kid"}"><time>${m.who==="me"?"박사님":"금쪽이"} · ${fmtT(m.at)}</time>${escH(m.text||"")}</div>`).join("");
   $("logView").scrollTop=0;
-}
-/* 이전 기록 → 멘붕 지수 복원: 시험 횟수(기록된 값 중 큰 것) + 분노 표현(대화 로그) / 기억 지우기는 기록이 없어 0 */
-async function fillTormFromHistory(){
-  if(!fb||!isAdmin) return;
-  const btn=$("tormFill");
-  if(!btn.classList.contains("armed")){ btn.classList.add("armed"); btn.textContent="한 번 더 누르면 실행해요"; setTimeout(()=>{ btn.classList.remove("armed"); btn.textContent="😵‍💫 이전 기록으로 멘붕 지수 채우기"; },3000); return; }
-  btn.classList.remove("armed"); btn.disabled=true; btn.textContent="채우는 중…";
-  try{
-    const [recs,chats]=await Promise.all([fb.collection(FB_COL).get(), fb.collection(FB_COL+"_chat").get()]);
-    const angerBy={}; chats.docs.forEach(d=>{ const m=d.data(); if(m&&m.who==="me"&&isAngryMsg(m.text||"")) angerBy[m.id]=(angerBy[m.id]||0)+1; });
-    let n=0, batch=fb.batch(), inBatch=0;
-    for(const d of recs.docs){
-      const r=d.data(), ct=r.torm||{};
-      const est={ exams:Math.max(ct.exams||0, r.attempts||0, r.minAttempts||0), anger:Math.max(ct.anger||0, angerBy[d.id]||0), wipes:ct.wipes||0 };
-      if(est.exams===(ct.exams||0) && est.anger===(ct.anger||0) && ct.wipes!==undefined) continue;
-      batch.update(d.ref,{torm:est}); n++; inBatch++;
-      if(inBatch>=400){ await batch.commit(); batch=fb.batch(); inBatch=0; }
-    }
-    if(inBatch) await batch.commit();
-    toast(`${n}명의 멘붕 지수를 이전 기록으로 채웠어요.`);
-  }catch(e){ console.warn(e); toast("채우지 못했어요: "+((e&&e.code)||e)); }
-  btn.disabled=false; btn.textContent="😵‍💫 이전 기록으로 멘붕 지수 채우기";
 }
 /* 과정 기록 내려받기 (관리자) — 읽기만 함 */
 async function downloadEvents(){
