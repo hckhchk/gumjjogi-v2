@@ -238,6 +238,15 @@ table.grid{border-collapse:separate;border-spacing:4px;width:100%;min-width:640p
 .duo .ln.a{align-self:flex-start;border-left:4px solid var(--jacket)}
 .duo .ln.b{align-self:flex-end;border-right:4px solid var(--para)}
 .duo .ln.wait{align-self:center;color:var(--muted);border-style:dashed}
+.duo .ln.think{align-self:center;color:var(--muted);border-style:dashed}
+.duo .caret{display:inline-block;width:2px;height:1em;background:currentColor;margin-left:2px;vertical-align:-2px;animation:duoBlink 1s steps(1) infinite}
+.duo .dots{display:inline-flex;gap:4px;padding:4px 0}
+.duo .dots span{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:duoDot 1.2s infinite}
+.duo .dots span:nth-child(2){animation-delay:.2s} .duo .dots span:nth-child(3){animation-delay:.4s}
+@keyframes duoBlink{50%{opacity:0}}
+@keyframes duoDot{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.duo .caret,.duo .dots span{animation:none}}
+.duoskip{margin:2px 0 4px}
 .judge{margin-top:8px;padding:10px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--line)}
 .judge .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .judge.done{border-color:var(--ok)}
@@ -1430,11 +1439,21 @@ function duoScript(qi,A,B,fname){
 }
 function duoTruth(){ const aOk=pt.A.pick===pt.A.ans, bOk=pt.B.pick===pt.B.ans; return {aOk,bOk,key:aOk&&bOk?"both":aOk?"A":bOk?"B":"none"}; }
 const JL={A:"내 금쪽이",B:"친구 금쪽이",both:"둘 다 맞아요",none:"둘 다 틀려요"};
+/* 대화 재생: AI가 만든 줄을 한 줄씩, 글자 단위로 타이핑하듯 보여 줌 (실제로 주고받는 느낌) */
+const DUO_TYPE=45, DUO_PUNCT=220, DUO_THINK=650, DUO_GAP=700;
+const duoReduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const duoWait=ms=>new Promise(r=>setTimeout(r,ms));
+function duoName(w){ return w==="A"?"내 금쪽이":`${duoCur.fname} 친구의 금쪽이`; }
 function paintDuo(){
   const box=$("duoBox"); if(!box||!duoCur) return;
   if(pt.key!==duoCur.key){ box.innerHTML=""; return; }
-  const nm=w=>w==="A"?"내 금쪽이":`${duoCur.fname} 친구의 금쪽이`;
-  let h=`<div class="duo">${pt.lines.map(l=>`<div class="ln ${l.w==="A"?"a":"b"}"><small>${escH(nm(l.w))}</small>${escH(l.t)}</div>`).join("")}${pt.status==="loading"?`<div class="ln wait">두 금쪽이가 이야기하는 중… 🤔</div>`:""}</div>`;
+  const line=(l,txt,cls)=>`<div class="ln ${l.w==="A"?"a":"b"} ${cls||""}"><small>${escH(duoName(l.w))}</small><span class="tx">${escH(txt)}</span>${cls==="typing"?'<i class="caret"></i>':""}</div>`;
+  let h=`<div class="duo">`+pt.lines.slice(0,pt.shown).map(l=>line(l,l.t)).join("");
+  if(pt.typing) h+=line(pt.lines[pt.typing.i],[...pt.lines[pt.typing.i].t].slice(0,pt.typing.n).join(""),"typing");
+  else if(pt.wait) h+=`<div class="ln ${pt.wait==="A"?"a":"b"} wait"><small>${escH(duoName(pt.wait))}</small><span class="dots" aria-label="입력 중"><span></span><span></span><span></span></span></div>`;
+  else if(pt.status==="loading"&&pt.shown===0) h+=`<div class="ln think">두 금쪽이가 생각하는 중… 🤔</div>`;
+  h+=`</div>`;
+  if(pt.status==="loading"&&(pt.shown>0||pt.typing)&&!pt.skip) h+=`<button class="btn ghost small duoskip" id="duoSkip">⏩ 바로 보기</button>`;
   if(pt.note) h+=`<p class="sm muted" style="margin:4px 0">${escH(pt.note)}</p>`;
   if(pt.status==="done"){
     const q=QS[pt.qi], T=duoTruth();
@@ -1442,30 +1461,69 @@ function paintDuo(){
     else h+=`<div class="judge done"><b>${pt.judged===T.key?"✓ 정확하게 판단했어요!":"✗ 다시 생각해 봐요"}</b> 정답은 <b>${NUMS[pt.A.ans]} ${escH(q.c[pt.A.ans])}</b>예요. 내 금쪽이 ${T.aOk?"맞음":"틀림"}${pt.A.guess?"(찍기)":""} · 친구 금쪽이 ${T.bOk?"맞음":"틀림"}${pt.B.guess?"(찍기)":""}<br><span class="sm">금쪽이가 자신 있게 말해도 노트에 그 장면이 없으면 틀릴 수 있어요. 어떤 장면을 보여 주면 확실해질까요?</span></div>`;
   }
   box.innerHTML=h;
+  const sk=$("duoSkip"); if(sk) sk.onclick=()=>{ pt.skip=true; paintDuo(); };
   box.querySelectorAll("[data-j]").forEach(b=>b.onclick=()=>{
     pt.judged=b.dataset.j; const T=duoTruth();
     fbLog("me",`[금쪽이 대화 판단 · ${duoCur.fr.name} · ${pt.qi+1}번] 내 판단: ${JL[pt.judged]} → ${pt.judged===T.key?"정확":"틀림"}`);
     paintDuo();
   });
 }
+/* 글자 하나 칠 때마다 전체를 다시 그리지 않고, 타이핑 중인 줄만 바꿈 */
+function paintTyping(){
+  const el=pt.key===(duoCur&&duoCur.key) && document.querySelector("#duoBox .ln.typing .tx");
+  if(el) el.textContent=[...pt.lines[pt.typing.i].t].slice(0,pt.typing.n).join(""); else paintDuo();
+}
+async function playDuo(mine){
+  while(pt===mine){
+    /* 생성 중에는 마지막 줄이 아직 덜 써졌을 수 있어서 그 앞 줄까지만 재생 */
+    const ready = mine.gen==="run" ? Math.max(0,mine.lines.length-1) : mine.lines.length;
+    if(mine.shown<ready){
+      const L=mine.lines[mine.shown];
+      if(mine.skip||duoReduce){ mine.shown++; mine.wait=null; paintDuo(); continue; }
+      mine.wait=L.w; paintDuo(); await duoWait(DUO_THINK); if(pt!==mine) return; mine.wait=null;
+      const chars=[...L.t];
+      mine.typing={i:mine.shown,n:0}; paintDuo();
+      for(let n=1;n<=chars.length;n++){
+        if(pt!==mine) return; if(mine.skip) break;
+        mine.typing.n=n; paintTyping();
+        await duoWait(/[.!?…~]/.test(chars[n-1]) ? DUO_PUNCT : DUO_TYPE);
+      }
+      if(pt!==mine) return;
+      mine.typing=null; mine.shown++; paintDuo();
+      if(!mine.skip) await duoWait(DUO_GAP);
+    } else if(mine.gen!=="run") break;
+    else {
+      /* 다음 줄이 아직 만들어지는 중: 첫 줄 전에는 '생각 중', 그다음부터는 다음 차례 금쪽이가 입력 중 */
+      const nw = mine.shown>0 ? (mine.lines[mine.shown-1].w==="A"?"B":"A") : null;
+      if(mine.wait!==nw){ mine.wait=nw; paintDuo(); }
+      await duoWait(120);
+    }
+  }
+  if(pt!==mine) return;
+  mine.wait=null; mine.typing=null; mine.status="done"; paintDuo();
+  const g=$("duoGo"); if(g&&duoCur&&duoCur.key===mine.key) g.disabled=false;
+}
 async function startDuo(){
   if(!duoCur||(pt.key===duoCur.key&&pt.status==="loading")) return;
   const cur=duoCur, qi=peerTopic, A=cur.RA[qi], B=cur.RB[qi];
-  pt={key:cur.key,qi,A,B,lines:[],status:"loading",judged:null,note:""};
-  const g=$("duoGo"); if(g) g.disabled=true; paintDuo();
-  const mine=pt; let ok=false;
+  pt={key:cur.key,qi,A,B,lines:[],gen:"run",shown:0,typing:null,wait:null,skip:false,status:"loading",judged:null,note:""};
+  const mine=pt; const g=$("duoGo"); if(g) g.disabled=true; paintDuo();
+  playDuo(mine);
+  let ok=false;
   if(sampleFn){
     try{
-      const {text}=await sampleFn(duoPrompt(qi,A,B,notes,cur.fn,cur.fname),{onText:({text})=>{ if(pt!==mine) return; mine.lines=parseDuo(text); paintDuo(); }});
+      const {text}=await sampleFn(duoPrompt(qi,A,B,notes,cur.fn,cur.fname),{onText:({text})=>{ mine.lines=parseDuo(text); }});
       const ls=parseDuo(text); if(ls.length>=2){ mine.lines=ls; ok=true; }
     }catch(e){
       console.warn("금쪽이 대화 AI 실패",e);
       mine.note=/429|quota|RESOURCE|cooldown/i.test(String((e&&(e.message||e.code))||e)) ? "AI 사용량이 잠시 가득 차서 노트로 만든 기본 대화를 보여 줘요." : "AI에 연결하지 못해 노트로 만든 기본 대화를 보여 줘요.";
     }
   } else mine.note="AI가 연결되지 않아 노트로 만든 기본 대화를 보여 줘요.";
-  if(!ok){ mine.lines=duoScript(qi,A,B,cur.fname); if(!mine.note) mine.note="AI 대답 형식이 이상해서 노트로 만든 기본 대화를 보여 줘요."; }
-  mine.status="done";
-  if(pt===mine){ paintDuo(); const g2=$("duoGo"); if(g2&&duoCur&&duoCur.key===mine.key) g2.disabled=false; }
+  if(!ok){
+    if(mine.shown===0&&!mine.typing){ mine.lines=duoScript(qi,A,B,cur.fname); if(!mine.note) mine.note="AI 대답 형식이 이상해서 노트로 만든 기본 대화를 보여 줘요."; }
+    else { mine.lines=mine.lines.slice(0,mine.shown+(mine.typing?1:0)); mine.note="AI 대화가 중간에 끊겼어요. 다시 ‘대화 시작’을 눌러 보세요."; }
+  }
+  mine.gen="done";
 }
 
 peerReady=true; renderPeer();
